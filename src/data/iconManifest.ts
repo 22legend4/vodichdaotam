@@ -126,4 +126,4 @@ export const ICON_MANIFEST: string[] = [
   "sbed/cancel.png",
   "sbed/shield.png"
 ];
-export const ICON_MANIFEST_GENERATED_AT = "2026-08-18T03:34:36.887Z";
+export const ICON_MANIFEST_GENERATED_AT = "2026-08-18T09:25:11.655Z";

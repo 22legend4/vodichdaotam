@@ -44,7 +44,7 @@ export interface CharacterData {
   equipment: Record<EquipmentSlot, string | null>;
 }
 
-export type SkillType = WeaponType | 'chung' | 'dodon' | 'control' | 'immunity' | 'breakControl';
+export type SkillType = WeaponType | 'chung' | 'dodon';
 
 export interface SkillData {
   id: string;
@@ -54,14 +54,12 @@ export interface SkillData {
   defBonus: number;
   /** Chi phí Qi cố định. */
   qiCost: number;
-  category: 'damage' | 'defense' | 'control' | 'special';
+  category: 'damage' | 'defense';
   description: string;
   /** Điểm võ kỹ cần để mua. */
   skillPointCost: number;
   /** PNG trong public/assets/icons/ */
   iconPath: string;
-  /** Hiệu ứng đặc biệt (khống chế, miễn khống…). */
-  effect?: string;
 }
 
 export type ItemType = 'equipment' | 'medicine' | 'beast' | 'material' | 'currency';

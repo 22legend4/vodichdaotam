@@ -86,7 +86,7 @@ export const CHAPTER_9_STAGES: MapStageNode[] = [
   }),
   stage9({
     id: CH9_GIOI_TAM_HUB_ID, name: 'Giới Tâm', order: 11, displayLabel: 'Giới Tâm',
-    gridX: 2, gridY: 2, prerequisites: [CH9_TELEPORT_HUB_ID], isHub: true,
+    gridX: 2, gridY: 2, prerequisites: [CH9_GATE_9_ID, CH9_TELEPORT_HUB_ID], isHub: true,
     enemyWaves: waves(n('npc47', 5)),
     enemyNpcIds: n('npc47', 5),
     expReward: 0,

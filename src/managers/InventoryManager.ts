@@ -113,15 +113,8 @@ export function getBattleItemTargetCount(itemId: string): number {
   return 1;
 }
 
-export const CHUYEN_SINH_DAN_ITEM_ID = 'item_chuyenSinhDan';
-const LEGACY_CHUYEN_SINH_DAN_ITEM_ID = 'med_chuyenSinhDan';
-
-/** Id thực trong túi (hỗ trợ save cũ med_chuyenSinhDan). */
-export function resolveChuyenSinhDanItemId(inventory: { getItemQuantity(itemId: string): number }): string | null {
-  if (inventory.getItemQuantity(CHUYEN_SINH_DAN_ITEM_ID) > 0) return CHUYEN_SINH_DAN_ITEM_ID;
-  if (inventory.getItemQuantity(LEGACY_CHUYEN_SINH_DAN_ITEM_ID) > 0) return LEGACY_CHUYEN_SINH_DAN_ITEM_ID;
-  return null;
-}
+/** Vật phẩm đã bỏ — không còn trong túi (Chuyển sinh chỉ tại Cổng dịch chuyển). */
+const REMOVED_INVENTORY_ITEM_IDS = new Set(['item_chuyenSinhDan', 'med_chuyenSinhDan']);
 
 export interface UseMedicineResult {
   success: boolean;
@@ -579,13 +572,15 @@ export class InventoryManager {
     if (state.grid && state.grid.length > 0) {
       state.grid.forEach((slot, i) => {
         if (i < this.capacity && slot) {
-          this.grid[i] = InventoryManager.migrateItemSlot(slot);
+          const migrated = InventoryManager.migrateItemSlot(slot);
+          if (migrated) this.grid[i] = migrated;
         }
       });
     } else {
       state.slots.forEach((slot, i) => {
         if (i < this.capacity) {
-          this.grid[i] = InventoryManager.migrateItemSlot(slot);
+          const migrated = InventoryManager.migrateItemSlot(slot);
+          if (migrated) this.grid[i] = migrated;
         }
       });
     }
@@ -599,11 +594,11 @@ export class InventoryManager {
     return DEFAULT_INVENTORY_CAPACITY;
   }
 
-  private static migrateItemSlot(slot: InventorySlot): InventorySlot {
+  private static migrateItemSlot(slot: InventorySlot): InventorySlot | null {
     let itemId = slot.itemId;
+    if (REMOVED_INVENTORY_ITEM_IDS.has(itemId)) return null;
     if (itemId === 'med_hoiNguyenDan') itemId = 'med_hoiNguyenHuyet';
     if (itemId === 'med_nghanhXuanThao') itemId = 'med_nghenhXuanThao';
-    if (itemId === LEGACY_CHUYEN_SINH_DAN_ITEM_ID) itemId = CHUYEN_SINH_DAN_ITEM_ID;
     return itemId === slot.itemId ? { ...slot } : { ...slot, itemId };
   }
 }

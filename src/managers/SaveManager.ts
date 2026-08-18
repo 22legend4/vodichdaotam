@@ -13,7 +13,7 @@ import type { WalletSaveState } from './WalletManager.ts';
 import { clearAllGameLocalData } from '../utils/guestSession.ts';
 
 export const SAVE_STORAGE_KEY = 'vodichdaotam_save';
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 6;
 
 /** Số lần tối đa hiện bảng giới thiệu võ kỹ — dùng chung toàn tài khoản (không theo từng nhân vật). */
 export const SKILL_INTRO_MAX_SHOWS = 5;
@@ -38,6 +38,8 @@ export interface StageProgress {
   activeMapChapterId?: string;
   /** Đã tu luyện Huyết Long Trì (Cổng dịch chuyển — Chương 9). */
   huyetLongTriComplete?: boolean;
+  /** Đã dùng Chuyển sinh đan tại Cổng dịch chuyển — cổng biến mất, Giới Tâm mở sau khi vượt lại ải 9. */
+  teleportGateReincarnationUsed?: boolean;
 }
 
 export interface GameSaveData {

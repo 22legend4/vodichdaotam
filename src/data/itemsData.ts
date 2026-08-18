@@ -210,14 +210,6 @@ const MEDICINES_DATA: ItemData[] = [
 /** Vật phẩm tab Khác. */
 const MISC_DATA: ItemData[] = [
   misc(
-    'item_chuyenSinhDan',
-    'Chuyển sinh đan',
-    'Reset nhân vật về level 1, chơi lại từ đầu. Giữ lại được toàn bộ túi đồ. '
-    + 'Các nhân vật đồng đội không còn (thu thập đồng đội ở chương 1, như người chơi mới). '
-    + 'Nhân vật chính trở về cảnh giới Luyện Thể, được tặng 3 điểm võ kỹ, mở ra võ kỹ ẩn Tứ Phân Quy Nguyên Khí.',
-    0,
-  ),
-  misc(
     'item_nhanKhongGian',
     'Nhẫn không gian',
     'Tăng số ngăn trong Túi đồ, từ 27 lên 54.',
@@ -406,9 +398,6 @@ const BEASTS_DATA: ItemData[] = [
 
 export const EQUIPMENT_DATA: ItemData[] = EQUIPMENT_CATALOG;
 
-/** @deprecated Dùng item_chuyenSinhDan */
-export const LEGACY_CHUYEN_SINH_DAN_ID = 'med_chuyenSinhDan';
-
 export const ITEMS_DATA: ItemData[] = [
   ...EQUIPMENT_DATA,
   ...MEDICINES_DATA,
@@ -423,7 +412,7 @@ export const ITEMS_BY_ID: Record<string, ItemData> = Object.fromEntries(
 );
 
 export function getItemById(id: string): ItemData | undefined {
-  return ITEMS_BY_ID[id] ?? (id === LEGACY_CHUYEN_SINH_DAN_ID ? ITEMS_BY_ID.item_chuyenSinhDan : undefined);
+  return ITEMS_BY_ID[id];
 }
 
 export function getItemsByType(type: ItemData['type']): ItemData[] {

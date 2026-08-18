@@ -2,7 +2,7 @@ import type { CharacterData, ItemData, NpcData, SkillData } from '../types/game.
 import { COMBAT_CONSTANTS } from '../constants/gameRules.ts';
 import { buildCombatStatBreakdown } from '../managers/CharacterManager.ts';
 import { calculateDamage, calculateMaxHp } from '../utils/damageCalculator.ts';
-import { buildBattleSkillIds, getSkillById, isSpecialSkill, getSkillEffectId } from '../data/skillsData.ts';
+import { buildBattleSkillIds, getSkillById } from '../data/skillsData.ts';
 import { getItemById } from '../data/itemsData.ts';
 import { getNpcById } from '../data/npcsData.ts';
 import { buildEnemyInstances } from '../utils/combatEnemyInstances.ts';
@@ -46,8 +46,8 @@ export class CombatEngine {
   /** Đơn vị còn sống khi bắt đầu Execution — vẫn ra chiêu dù HP về 0 trong cùng lượt. */
   private executionEligible = new Set<string>();
 
-  constructor(random: () => number = Math.random) {
-    this.skillEffects = new SkillEffectsProcessor(random);
+  constructor(_random: () => number = Math.random) {
+    this.skillEffects = new SkillEffectsProcessor();
   }
 
   static createFromConfig(config: BattleSetupConfig): CombatEngine {
@@ -137,15 +137,8 @@ export class CombatEngine {
     });
   }
 
-  /** Kích hoạt võ kỹ bổ trợ bị động (Miễn khống…) ngay khi vào trận — NPC địch và đồng minh có yêu thú trang bị. */
-  activateNpcPassiveSupportSkills(): void {
-    for (const unit of this.getUnits()) {
-      if (!unit.passiveSupportSkillId) continue;
-      const skill = getSkillById(unit.passiveSupportSkillId);
-      if (!skill) continue;
-      this.skillEffects.applyPassiveBattleSupport(unit, skill, (side) => this.getAliveUnits(side));
-    }
-  }
+  /** @deprecated Không còn võ kỹ bổ trợ bị động — giữ API trống cho tương thích. */
+  activateNpcPassiveSupportSkills(): void {}
 
   addEnemyCharacter(
     character: CharacterData,
@@ -227,37 +220,7 @@ export class CombatEngine {
     const pendingHealing = new Map<string, number>();
     const pendingQiDelta = new Map<string, number>();
 
-    const specialCommands: CombatCommand[] = [];
-    const actionCommands: CombatCommand[] = [];
-
-    for (const command of commands) {
-      const skill = command.skillId ? getSkillById(command.skillId) : undefined;
-      if (command.type === 'special' || (skill && isSpecialSkill(skill))) {
-        specialCommands.push(command.type === 'special' ? command : { ...command, type: 'special' });
-      } else {
-        actionCommands.push(command);
-      }
-    }
-
-    const getEffect = (skillId: string) => {
-      const skill = getSkillById(skillId);
-      return skill ? getSkillEffectId(skill) : undefined;
-    };
-
-    const { immunity, breakControl, control } = this.skillEffects.partitionSpecialCommands(
-      specialCommands,
-      getEffect,
-    );
-
-    for (const command of this.skillEffects.sortSpecialCommands(immunity, getEffect)) {
-      const result = this.resolveSpecialCommand(command, pendingDamage, pendingQiDelta);
-      if (result) results.push(result);
-    }
-
-    for (const command of this.skillEffects.sortSpecialCommands(control, getEffect)) {
-      const result = this.resolveSpecialCommand(command, pendingDamage, pendingQiDelta);
-      if (result) results.push(result);
-    }
+    const actionCommands = commands;
 
     for (const command of actionCommands) {
       const result = this.resolveActionCommand(
@@ -269,11 +232,6 @@ export class CombatEngine {
       if (result) results.push(result);
     }
 
-    for (const command of this.skillEffects.sortSpecialCommands(breakControl, getEffect)) {
-      const result = this.resolveSpecialCommand(command, pendingDamage, pendingQiDelta);
-      if (result) results.push(result);
-    }
-
     this.applyPendingChanges(pendingDamage, pendingHealing, pendingQiDelta);
     this.syncAliveState();
     this.executionEligible.clear();
@@ -282,10 +240,9 @@ export class CombatEngine {
     return results;
   }
 
-  /** Còn đủ điều kiện ra chiêu trong Execution Phase (snapshot HP + không bị khống chế). */
+  /** Còn đủ điều kiện ra chiêu trong Execution Phase (snapshot HP). */
   private canExecuteUnit(unitId: string): boolean {
-    if (!this.executionEligible.has(unitId)) return false;
-    return this.skillEffects.canUnitAct(unitId);
+    return this.executionEligible.has(unitId);
   }
 
   checkOutcome(): BattleOutcome {
@@ -298,48 +255,6 @@ export class CombatEngine {
     return 'ongoing';
   }
 
-  private resolveSpecialCommand(
-    command: CombatCommand,
-    pendingDamage: Map<string, number>,
-    pendingQiDelta: Map<string, number>,
-  ): CombatActionResult | null {
-    const actor = this.units.get(command.unitId);
-    if (!actor || !this.canExecuteUnit(actor.id)) {
-      if (actor && this.executionEligible.has(actor.id) && !this.skillEffects.canUnitAct(actor.id)) {
-        return this.createBlockedAction(actor, 'special', 'Bị khống chế, không thể dùng võ kỹ.');
-      }
-      return null;
-    }
-
-    const skill = command.skillId ? getSkillById(command.skillId) : undefined;
-    if (!skill || !isSpecialSkill(skill)) return null;
-
-    const qiCost = getSkillQiCost(skill, actor.maxQi);
-    if (!this.tryConsumeQi(actor, qiCost, pendingQiDelta)) {
-      return this.resolveQiFallbackNormalAttack(command, actor, pendingDamage, pendingQiDelta);
-    }
-
-    const effectResult = this.skillEffects.applySpecialSkill({
-      actor,
-      skill,
-      command,
-      units: this.units,
-      getAliveUnits: (side) => this.getAliveUnits(side),
-      getTotalDef: (unit) => {
-        const buff = this.turnBuffs.get(unit.id);
-        return unit.baseDef + (buff?.defBonus ?? 0);
-      },
-      pendingDamage,
-      pendingQiDelta,
-    });
-
-    if (effectResult) {
-      effectResult.qiCost = qiCost;
-    }
-
-    return effectResult;
-  }
-
   private resolveActionCommand(
     command: CombatCommand,
     pendingDamage: Map<string, number>,
@@ -348,9 +263,6 @@ export class CombatEngine {
   ): CombatActionResult | null {
     const actor = this.units.get(command.unitId);
     if (!actor || !this.canExecuteUnit(actor.id)) {
-      if (actor && this.executionEligible.has(actor.id) && !this.skillEffects.canUnitAct(actor.id)) {
-        return this.createBlockedAction(actor, command.type, 'Bị khống chế, không thể hành động.');
-      }
       return null;
     }
 

@@ -1,5 +1,21 @@
 import type { SkillData, WeaponType } from '../types/game.ts';
 
+/** Võ kỹ đã gỡ — lọc khỏi save cũ. */
+export const REMOVED_SKILL_IDS = [
+  'mienKhong',
+  'troi',
+  'dinh',
+  'phong',
+  'phatAn',
+  'thieuKhong',
+  'thoatKhong',
+  'voKhong',
+] as const;
+
+export function isRemovedSkill(skillId: string): boolean {
+  return (REMOVED_SKILL_IDS as readonly string[]).includes(skillId);
+}
+
 function dmg(
   id: string,
   name: string,
@@ -45,56 +61,6 @@ function def(
   };
 }
 
-function ctrl(
-  id: string,
-  name: string,
-  qi: number,
-  cost: number,
-  icon: string,
-  effect: string,
-  description: string,
-): SkillData {
-  return {
-    id,
-    name,
-    type: 'control',
-    atkBonus: 0,
-    defBonus: 0,
-    qiCost: qi,
-    category: 'control',
-    skillPointCost: cost,
-    iconPath: icon,
-    effect,
-    description,
-  };
-}
-
-function spec(
-  id: string,
-  name: string,
-  type: 'immunity' | 'breakControl',
-  qi: number,
-  cost: number,
-  icon: string,
-  effect: string,
-  description: string,
-): SkillData {
-  return {
-    id,
-    name,
-    type,
-    atkBonus: 0,
-    defBonus: 0,
-    qiCost: qi,
-    category: 'special',
-    skillPointCost: cost,
-    iconPath: icon,
-    effect,
-    description,
-  };
-}
-
-/** 30 võ kỹ theo GDD — thay thế toàn bộ dữ liệu cũ. */
 export const SKILLS_DATA: SkillData[] = [
   // --- Cơ bản (0 điểm) ---
   dmg('khongPhaQuyen', 'Không Phá Quyền', 'quyen', 2, 1, 0, 'lorc/fist.png'),
@@ -102,33 +68,12 @@ export const SKILLS_DATA: SkillData[] = [
   dmg('hoanhKhongDao', 'Hoành Không Đao', 'dao', 2, 1, 0, 'lorc/croc-sword.png'),
   dmg('thuongVoHoi', 'Thương Vô Hối', 'thuong', 2, 1, 0, 'lorc/barbed-spear.png'),
 
-  /** Võ kỹ bổ trợ bị động NPC — không học được, không tốn Qi, không thay võ kỹ chủ động. */
-  spec(
-    'mienKhong',
-    'Miễn Khống',
-    'immunity',
-    0,
-    0,
-    'lorc/back-pain.png',
-    'passiveSelfControlImmunity',
-    'Bị động suốt trận: bản thân miễn nhiễm võ kỹ khống chế. Vẫn dùng võ kỹ chủ động để tấn công hoặc phòng thủ.',
-  ),
-
   // --- 3 điểm ---
   dmg('nhatNguyetNhuKhong', 'Nhật Nguyệt Như Không', 'quyen', 12, 3, 3, 'lorc/mailed-fist.png'),
   dmg('nhatKiemDinhGiangSon', 'Nhất Kiếm Định Giang Sơn', 'kiem', 12, 3, 3, 'lorc/pointy-sword.png'),
   dmg('sonThuyVoTinh', 'Sơn Thủy Vô Tình', 'dao', 12, 3, 3, 'lorc/curvy-knife.png'),
   dmg('tueNguyet', 'Tuế Nguyệt', 'thuong', 12, 3, 3, 'lorc/barbed-arrow.png'),
   def('thaiDuTruongHa', 'Thái Du Trường Hà', 12, 3, 3, 'sbed/shield.png'),
-  ctrl(
-    'troi',
-    'Trói',
-    3,
-    3,
-    'lorc/bandaged.png',
-    'bindOneOne',
-    'Cố định 1 đối thủ trong 1 lượt đánh, khiến nhân vật đó không thể tấn công thường và không thể sử dụng võ kỹ.',
-  ),
 
   // --- 7 điểm ---
   dmg('quyenVoThanh', 'Quyền Vô Thanh', 'quyen', 31, 12, 7, 'lorc/boxing-glove.png'),
@@ -136,25 +81,6 @@ export const SKILLS_DATA: SkillData[] = [
   dmg('voAnhDao', 'Vô Ảnh Đao', 'dao', 31, 12, 7, 'lorc/crossed-sabres.png'),
   dmg('thachPhaThuong', 'Thạch Phá Thương', 'thuong', 31, 12, 7, 'lorc/spear-hook.png'),
   def('bachQuyTeGia', 'Bách Quy Tề Gia', 31, 12, 7, 'delapouite/shield-opposition.png'),
-  ctrl(
-    'dinh',
-    'Định',
-    12,
-    6,
-    'lorc/dead-eye.png',
-    'bindTwoTwo',
-    'Cố định 2 đối thủ trong 2 lượt đánh, khiến 2 nhân vật đó không thể tấn công thường và không thể sử dụng võ kỹ.',
-  ),
-  spec(
-    'thieuKhong',
-    'Thiếu Khống',
-    'immunity',
-    12,
-    4,
-    'lorc/back-pain.png',
-    'immunityTwoTwo',
-    'Giúp 2 thành viên không bị ảnh hưởng bởi võ kỹ khống chế của đối thủ trong 2 lượt (Không có tác dụng giải khống chế).',
-  ),
 
   // --- 9 điểm ---
   dmg('baoQuyen', 'Bạo Quyền', 'quyen', 68, 30, 9, 'lorc/hypersonic-bolt.png'),
@@ -162,25 +88,6 @@ export const SKILLS_DATA: SkillData[] = [
   dmg('baDao', 'Bá Đao', 'dao', 68, 30, 9, 'lorc/barbed-nails.png'),
   dmg('macThuong', 'Mạc Thương', 'thuong', 68, 30, 9, 'lorc/fishhook-fork.png'),
   def('hongHaiKinh', 'Hồng Hải Kình', 68, 30, 9, 'lorc/shield-echoes.png'),
-  ctrl(
-    'phong',
-    'Phong',
-    30,
-    8,
-    'lorc/eye-shield.png',
-    'bindThreeThree',
-    'Cố định 3 đối thủ trong 3 lượt đánh, khiến 3 nhân vật đó không thể tấn công thường và không thể sử dụng võ kỹ.',
-  ),
-  spec(
-    'thoatKhong',
-    'Thoát Khống',
-    'breakControl',
-    30,
-    5,
-    'lorc/aura.png',
-    'breakControlTeam',
-    'Giúp cả đội thoát khỏi võ kỹ khống chế của đối thủ.',
-  ),
 
   // --- 11 điểm ---
   dmg('thienQuyen', 'Thiên Quyền', 'quyen', 150, 100, 11, 'lorc/mushroom-cloud.png'),
@@ -188,27 +95,8 @@ export const SKILLS_DATA: SkillData[] = [
   dmg('vanDaoTrieuBai', 'Vạn Đao Triều Bái', 'dao', 150, 100, 11, 'lorc/saber-slash.png'),
   dmg('thuongVoDich', 'Thương Vô Địch', 'thuong', 150, 100, 11, 'lorc/spears.png'),
   def('kimCuongBatHoai', 'Kim Cương Bất Hoại', 150, 100, 11, 'lorc/shield-bounces.png'),
-  ctrl(
-    'phatAn',
-    'Phật Ấn',
-    100,
-    7,
-    'lorc/eyeball.png',
-    'bindThreeFive',
-    'Cố định 5 đối thủ trong 3 lượt đánh, khiến 5 nhân vật đó không thể tấn công thường và không thể sử dụng võ kỹ.',
-  ),
-  spec(
-    'voKhong',
-    'Vô Khống',
-    'immunity',
-    100,
-    7,
-    'lorc/atomic-slashes.png',
-    'immunityTeamThree',
-    'Khiến cả đội không bị ảnh hưởng bởi võ kỹ khống chế của đối thủ trong 3 lượt (Không có tác dụng giải khống chế).',
-  ),
 
-  // --- Chuyển sinh (36 điểm, chỉ sau khi dùng Chuyển sinh đan) ---
+  // --- Chuyển sinh (36 điểm, chỉ sau Huyết Long Trì hoặc Chuyển sinh tại Cổng dịch chuyển) ---
   dmg('tuPhanQuyNguyenKhi', 'Tứ Phân Quy Nguyên Khí', 'chung', 333, 200, 36, 'lorc/black-hole-bolas.png'),
 ];
 
@@ -216,7 +104,7 @@ export const SKILLS_BY_ID: Record<string, SkillData> = Object.fromEntries(
   SKILLS_DATA.map((s) => [s.id, s]),
 );
 
-/** Võ kỹ chỉ hiện sau khi nhân vật dùng Chuyển sinh đan. */
+/** Võ kỹ chỉ hiện sau khi chuyển sinh hoặc tu luyện Huyết Long Trì tại Cổng dịch chuyển. */
 export const REBIRTH_SKILL_ID = 'tuPhanQuyNguyenKhi';
 
 export function getSkillById(id: string): SkillData | undefined {
@@ -258,7 +146,7 @@ export function canLearnSkill(
     return { ok: false, reason: 'Đã học võ kỹ này.' };
   }
   if (skill.id === REBIRTH_SKILL_ID && !hasReincarnated) {
-    return { ok: false, reason: 'Cần dùng Chuyển sinh đan trước.' };
+    return { ok: false, reason: 'Cần chuyển sinh hoặc tu luyện Huyết Long Trì tại Cổng dịch chuyển trước.' };
   }
   if (availablePoints < skill.skillPointCost) {
     return { ok: false, reason: `Cần ${skill.skillPointCost} điểm võ kỹ.` };
@@ -283,10 +171,8 @@ export function buildBattleSkillIds(learnedIds: readonly string[], weapon: Weapo
   const slots: SkillData[] = [];
   const weaponSkill = pickBest((s) => s.type === weapon || s.type === 'chung');
   const defense = pickBest((s) => s.category === 'defense');
-  const control = pickBest((s) => s.category === 'control');
-  const support = pickBest((s) => s.category === 'special');
 
-  for (const s of [weaponSkill, defense, control, support]) {
+  for (const s of [weaponSkill, defense]) {
     if (s && !slots.some((x) => x.id === s.id)) slots.push(s);
   }
 
@@ -308,7 +194,7 @@ export function resolveBattleSkillIdsFromLoadout(
   const picked: string[] = [];
   if (loadout) {
     for (const skillId of loadout) {
-      if (!skillId || !learnedSet.has(skillId)) continue;
+      if (!skillId || !learnedSet.has(skillId) || isRemovedSkill(skillId)) continue;
       if (!picked.includes(skillId)) picked.push(skillId);
     }
   }
@@ -316,7 +202,7 @@ export function resolveBattleSkillIdsFromLoadout(
   return buildBattleSkillIds(learnedIds, weapon);
 }
 
-export type SkillTreeBranch = 'weapon' | 'defense' | 'control' | 'immunity' | 'rebirth';
+export type SkillTreeBranch = 'weapon' | 'defense' | 'rebirth';
 
 export interface SkillTreeNode {
   skillId: string;
@@ -327,11 +213,11 @@ export interface SkillTreeNode {
 }
 
 export interface SkillTreeOptions {
-  /** Nhân vật đã dùng Chuyển sinh đan — hiện thêm Tứ Phân Quy Nguyên Khí. */
+  /** Đã mở nhánh võ kỹ chuyển sinh (Huyết Long Trì hoặc Chuyển sinh tại cổng). */
   rebirthUnlocked?: boolean;
 }
 
-/** Cấu trúc cây võ kỹ — nhánh trái theo vũ khí, giữa đỡ đòn, phải khống chế / miễn. */
+/** Cấu trúc cây võ kỹ — nhánh vũ khí và phòng thủ. */
 export function getSkillTreeNodes(weapon: WeaponType, options?: SkillTreeOptions): SkillTreeNode[] {
   const w = WEAPON_BASIC_SKILL[weapon];
   const weaponChain = [
@@ -343,8 +229,6 @@ export function getSkillTreeNodes(weapon: WeaponType, options?: SkillTreeOptions
   ];
 
   const defenseChain = ['thaiDuTruongHa', 'bachQuyTeGia', 'hongHaiKinh', 'kimCuongBatHoai'];
-  const controlChain = ['troi', 'dinh', 'phong', 'phatAn'];
-  const immunityChain = ['thieuKhong', 'thoatKhong', 'voKhong'];
 
   const nodes: SkillTreeNode[] = [];
 
@@ -364,28 +248,6 @@ export function getSkillTreeNodes(weapon: WeaponType, options?: SkillTreeOptions
       branch: 'defense',
       row,
       parentSkillId: row === 1 ? w : defenseChain[i - 1],
-    });
-  });
-
-  nodes.push({ skillId: 'troi', branch: 'control', row: 1, parentSkillId: w });
-
-  controlChain.slice(1).forEach((id, i) => {
-    const row = i + 2;
-    nodes.push({
-      skillId: id,
-      branch: 'control',
-      row,
-      parentSkillId: controlChain[i]!,
-    });
-  });
-
-  immunityChain.forEach((id, i) => {
-    const row = i + 2;
-    nodes.push({
-      skillId: id,
-      branch: 'immunity',
-      row,
-      parentSkillId: i === 0 ? 'troi' : immunityChain[i - 1],
     });
   });
 
@@ -415,37 +277,11 @@ export function getSkillTreePosition(branch: SkillTreeBranch, row: number): { x:
     return { x: 307, y: 548 };
   }
   const yByRow = [68, 166, 264, 362, 460];
-  const col =
-    branch === 'weapon' ? 88 :
-    branch === 'defense' ? 230 :
-    branch === 'control' ? 378 : 526;
-  /** Gốc cây (võ kỹ cơ bản) thẳng cột phòng thủ. */
-  const x = branch === 'weapon' && row === 0 ? 230 : col;
+  const weaponCol = 120;
+  const defenseCol = 380;
+  const col = branch === 'weapon' ? weaponCol : defenseCol;
+  const x = branch === 'weapon' && row === 0 ? (weaponCol + defenseCol) / 2 : col;
   return { x, y: yByRow[row] ?? 68 };
-}
-
-export function isSpecialSkill(skill: SkillData): boolean {
-  return skill.category === 'control' || skill.category === 'special';
-}
-
-export function getSkillEffectId(skill: SkillData): string | undefined {
-  return skill.effect;
-}
-
-/** Số địch cần khống chế theo hiệu ứng bind. */
-export function getBindTargetCount(effect: string | undefined): number {
-  switch (effect) {
-    case 'bindOneOne':
-      return 1;
-    case 'bindTwoTwo':
-      return 2;
-    case 'bindThreeThree':
-      return 3;
-    case 'bindThreeFive':
-      return 5;
-    default:
-      return 0;
-  }
 }
 
 /** Cộng dồn công/thủ thụ động từ võ kỹ đã học. */

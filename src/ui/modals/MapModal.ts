@@ -165,8 +165,6 @@ export interface MapModalOptions {
   onClose?: () => void;
   /** Hiện hướng dẫn đóng bản đồ (bước 2 hướng dẫn võ kỹ). */
   skillEquipGuide?: boolean;
-  /** Sau tu luyện Huyết Long Trì — mở Võ Kỹ trên sảnh chính. */
-  onHuyetLongTriComplete?: () => void;
   onCloseButtonReady?: (
     btn: Phaser.GameObjects.GameObject,
     parent: Phaser.GameObjects.Container,
@@ -191,7 +189,6 @@ export class MapModal extends ModalBase {
   private mapPanTeardown: (() => void)[] = [];
   private mapPanSuspended = false;
   private skillEquipGuide = false;
-  private onHuyetLongTriComplete?: () => void;
   private onCloseButtonReady?: MapModalOptions['onCloseButtonReady'];
   private guideCloseReadySent = false;
   private teleportGateModal?: TeleportGateModal;
@@ -203,7 +200,6 @@ export class MapModal extends ModalBase {
         : (onCloseOrOptions ?? {});
     super(scene, { title: '🗺 Bản Đồ', fullscreen: true, onClose: options.onClose });
     this.skillEquipGuide = options.skillEquipGuide === true;
-    this.onHuyetLongTriComplete = options.onHuyetLongTriComplete;
     this.onCloseButtonReady = options.onCloseButtonReady;
     const savedChapterId = GameState.getInstance().getActiveMapChapterId();
     if (getChapterById(savedChapterId)) {
@@ -439,7 +435,13 @@ export class MapModal extends ModalBase {
   private renderChapterMap(stages: MapStageNode[]): void {
     if (stages.length === 0) return;
 
-    const visibleStages = stages.filter((s) => !s.mapHidden);
+    const visibleStages = stages.filter((s) => {
+      if (s.mapHidden) return false;
+      if (s.id === CH9_TELEPORT_HUB_ID && GameState.getInstance().isTeleportGateReincarnationUsed()) {
+        return false;
+      }
+      return true;
+    });
     if (visibleStages.length === 0) return;
 
     const gs = GameState.getInstance();
@@ -447,6 +449,7 @@ export class MapModal extends ModalBase {
     const tutorialOk = gs.isTutorialComplete();
     const tinhThach = gs.inventoryManager.getTinhThach();
     const huyetLongTriComplete = gs.isHuyetLongTriComplete();
+    const teleportGateReincarnationUsed = gs.isTeleportGateReincarnationUsed();
 
     const minX = Math.min(...visibleStages.map((s) => s.gridX));
     const maxX = Math.max(...visibleStages.map((s) => s.gridX));
@@ -477,12 +480,16 @@ export class MapModal extends ModalBase {
       if (!from || !to) continue;
       const p1 = this.resolveNodePos(from, stageMap, toPx);
       const p2 = this.resolveNodePos(to, stageMap, toPx);
-      const toState = getStageAccessState(to, cleared, tutorialOk, tinhThach, huyetLongTriComplete);
+      const toState = getStageAccessState(
+        to, cleared, tutorialOk, tinhThach, huyetLongTriComplete, teleportGateReincarnationUsed,
+      );
       drawStageRope(lines, p1.x, p1.y, p2.x, p2.y, NODE_R, toState);
     }
 
     for (const node of visibleStages) {
-      const state = getStageAccessState(node, cleared, tutorialOk, tinhThach, huyetLongTriComplete);
+      const state = getStageAccessState(
+        node, cleared, tutorialOk, tinhThach, huyetLongTriComplete, teleportGateReincarnationUsed,
+      );
       const pos = this.resolveNodePos(node, stageMap, toPx);
       this.drawNode(node, pos.x, pos.y, state);
     }
@@ -671,6 +678,7 @@ export class MapModal extends ModalBase {
             gs.isTutorialComplete(),
             gs.inventoryManager.getTinhThach(),
             gs.isHuyetLongTriComplete(),
+            gs.isTeleportGateReincarnationUsed(),
           );
           this.showToast(reason || 'Cửa ải chưa mở khóa');
           return;
@@ -709,7 +717,7 @@ export class MapModal extends ModalBase {
         const gs = GameState.getInstance();
         const reason = getStageLockReason(
           node, gs.progress.clearedStageIds, gs.isTutorialComplete(), gs.inventoryManager.getTinhThach(),
-          gs.isHuyetLongTriComplete(),
+          gs.isHuyetLongTriComplete(), gs.isTeleportGateReincarnationUsed(),
         );
         this.showToast(reason || 'Cửa ải chưa mở khóa');
       });
@@ -901,10 +909,26 @@ export class MapModal extends ModalBase {
       },
       onHuyetLongTriComplete: () => {
         this.teleportGateModal = undefined;
+        this.enterGioiTamBattle();
+      },
+      onTeleportGateReincarnationComplete: () => {
+        this.teleportGateModal = undefined;
+        GameState.getInstance().setActiveMapChapter('chapter_1');
+        this.activeChapterId = 'chapter_1';
         this.close();
-        this.onHuyetLongTriComplete?.();
       },
     });
+  }
+
+  /** Vào trận Giới Tâm ngay (sau Huyết Long Trì hoặc từ bản đồ). */
+  private enterGioiTamBattle(): void {
+    const gioiTam = getStageById(CH9_GIOI_TAM_HUB_ID);
+    if (!gioiTam) {
+      this.showToast('Không tìm thấy ải Giới Tâm');
+      this.close();
+      return;
+    }
+    this.startBattle(gioiTam);
   }
 
   private clearGlows(): void {

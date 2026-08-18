@@ -40,7 +40,7 @@ export function skillSlotCenters(): { x: number; y: number }[] {
 }
 
 export interface CommandMenuCallbacks {
-  onSkillSelect: (skillId: string, category: 'damage' | 'defense' | 'control' | 'special') => void;
+  onSkillSelect: (skillId: string, category: 'damage' | 'defense') => void;
   onItem: () => void;
   onFightNow: () => void;
 }

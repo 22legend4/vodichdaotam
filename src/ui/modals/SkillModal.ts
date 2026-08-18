@@ -28,9 +28,9 @@ const ACCENT_ORANGE_HEX = '#ef6c00';
 const PANEL_X = Math.floor(GAME_WIDTH * 0.65);
 const LEFT_W = PANEL_X;
 const PANEL_W = GAME_WIDTH - PANEL_X;
-/** Căn giữa cây trong vùng trái. */
+/** Căn giữa cây trong vùng trái (dịch thêm 50px sang trái). */
 const TREE_CENTER_X = (88 + 526) / 2;
-const TREE_OFFSET_X = LEFT_W / 2 - TREE_CENTER_X;
+const TREE_OFFSET_X = LEFT_W / 2 - TREE_CENTER_X - 50;
 const TREE_OFFSET_Y = 72;
 const LOADOUT_SLOT_SIZE = 52;
 const LOADOUT_GAP = 10;
@@ -575,7 +575,7 @@ export class SkillModal extends ModalBase {
       }).setOrigin(0.5, 0),
     );
 
-    if (skill.category === 'control' || skill.category === 'special' || skill.category === 'defense') {
+    if (skill.category === 'defense') {
       this.detailContainer.add(
         this.scene.add.text(cx, y0 + 230 + DETAIL_BODY_OFFSET, skill.description, {
           fontFamily: UI_THEME.fontFamily,

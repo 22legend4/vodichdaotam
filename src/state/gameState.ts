@@ -354,8 +354,15 @@ export class GameState {
     return this.progress.huyetLongTriComplete === true;
   }
 
-  /** Chuyển sinh đan — reset nhân vật chính + tiến trình bản đồ (giữ tutorial nếu đã qua). */
-  applyReincarnation(characterId: string): { success: boolean; message: string } {
+  isTeleportGateReincarnationUsed(): boolean {
+    return this.progress.teleportGateReincarnationUsed === true;
+  }
+
+  /**
+   * Chuyển sinh tại Cổng dịch chuyển — áp dụng ngay (chỉ có duy nhất tại cổng), cổng biến mất;
+   * sau khi vượt lại ải 9 chương 9 mới vào được Giới Tâm.
+   */
+  applyTeleportGateReincarnation(characterId: string): { success: boolean; message: string } {
     const result = this.characterManager.reincarnate(characterId);
     if (!result.success) return result;
 
@@ -370,16 +377,17 @@ export class GameState {
       skillEquipGuideDone: false,
       skillEquipGuideCharacterId: undefined,
       activeMapChapterId: 'chapter_1',
+      teleportGateReincarnationUsed: true,
     };
     this.syncPartyVitals();
     this.persist();
     return {
       success: true,
-      message: `${result.message} Tiến trình bản đồ đã reset về Chương 1.`,
+      message: `${result.message} Cổng dịch chuyển đã đóng. Hãy vượt lại ải 9 để vào Giới Tâm.`,
     };
   }
 
-  /** Huyết Long Trì — trừ 1 triệu đ, +3 điểm võ kỹ, mở võ kỹ chuyển sinh, mở ải Giới Tâm. */
+  /** Huyết Long Trì — trừ 1 triệu đ, +3 điểm võ kỹ, mở võ kỹ chuyển sinh, vào Giới Tâm ngay. */
   completeHuyetLongTriTraining(characterId: string): { success: boolean; message: string } {
     if (this.progress.huyetLongTriComplete) {
       return { success: false, message: 'Bạn đã tu luyện Huyết Long Trì rồi.' };

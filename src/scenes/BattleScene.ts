@@ -5,11 +5,11 @@ import { getNpcById } from '../data/npcsData.ts';
 import { BANDIT_NPC_ID } from '../data/npcAppearances.ts';
 import { getDefeatSubtitleForStage, getStageById, getNextTrialStageIdInChain, isTrialChainBattleStage } from '../data/chaptersData.ts';
 import type { MapStageNode } from '../types/game.ts';
-import { getSkillById, getBindTargetCount } from '../data/skillsData.ts';
+import { getSkillById } from '../data/skillsData.ts';
 import { TurnManager } from '../systems/TurnManager.ts';
 import { CombatEngine } from '../systems/CombatEngine.ts';
 import type { CombatActionResult, CombatCommand, CombatUnit } from '../systems/combatTypes.ts';
-import type { SkillData, ItemData } from '../types/game.ts';
+import type { SkillData, ItemData, WeaponType } from '../types/game.ts';
 import type { StageItemReward } from '../constants/gameRules.ts';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/gameDimensions.ts';
 import {
@@ -32,7 +32,8 @@ import {
   BattleVictoryOverlay,
   TrialSpoilsOverlay,
 } from '../ui/index.ts';
-import { resolveAvatarKey, resolveSkillFxKey, resolveItemIconKey, addSceneBackground, battleSlotPositions, weaponSwingFxKey, type SceneBackgroundKey } from '../utils/AssetGenerator.ts';
+import { resolveAvatarKey, resolveItemIconKey, addSceneBackground, battleSlotPositions, type SceneBackgroundKey } from '../utils/AssetGenerator.ts';
+import { resolveSkillCastVisual, type SkillCastVisual } from '../utils/skillCastIcon.ts';
 import { resolvePlayerAttackKey, resolvePlayerDisplayKey } from '../utils/characterSpriteAssets.ts';
 import { buildEnemyInstances } from '../utils/combatEnemyInstances.ts';
 import { getCompanionIdByUnlockStage } from '../managers/CharacterManager.ts';
@@ -48,9 +49,11 @@ import { getLeoThapFloorFromStageId } from './leoThapBattleFlow.ts';
 import type { TrialRunRewards } from '../utils/trialRunRewards.ts';
 import { appendTrialRunReward, createEmptyTrialRunRewards } from '../utils/trialRunRewards.ts';
 
-const COMBAT_ATTACK_ANIM_MS = 3000;
-/** Thời điểm “trúng đòn” trong animation ra chiêu đồng thời (ms). */
-const COMBAT_EXECUTION_HIT_MS = 450;
+import {
+  COMBAT_CAST_DURATION_MS,
+  COMBAT_DAMAGE_REVEAL_MS,
+  COMBAT_SKILL_IMPACT_MS,
+} from '../constants/combatTiming.ts';
 
 /** Bảng túi đồ trong trận — full chiều cao, rộng gấp đôi bảng cũ (400→800). */
 const BATTLE_BAG_PANEL_W = 800;
@@ -97,7 +100,7 @@ export interface BattleSceneData {
 }
 
 type PendingAction = 'skill' | 'item' | 'normalAttack' | null;
-type SkillPickMode = 'attack' | 'defense' | 'control' | 'support' | null;
+type SkillPickMode = 'attack' | 'defense' | null;
 
 export class BattleScene extends Phaser.Scene {
   private turnManager!: TurnManager;
@@ -116,10 +119,7 @@ export class BattleScene extends Phaser.Scene {
   private pendingAction: PendingAction = null;
   private skillPickMode: SkillPickMode = null;
   private selectedSkillId: string | null = null;
-  private pendingControlTargetIds: string[] = [];
   private pendingItemTargetIds: string[] = [];
-  /** Giữ hiệu ứng khống chế trên UI trong lúc animation (sau khi engine đã endTurn). */
-  private turnBoundVisualIds = new Set<string>();
   private timerEvent?: Phaser.Time.TimerEvent;
   private allyIds: string[] = [];
   private enemyIds: string[] = [];
@@ -150,9 +150,7 @@ export class BattleScene extends Phaser.Scene {
     this.pendingAction = null;
     this.skillPickMode = null;
     this.selectedSkillId = null;
-    this.pendingControlTargetIds = [];
     this.pendingItemTargetIds = [];
-    this.turnBoundVisualIds.clear();
     this.dungeonBonusRewardLabel = null;
     this.chosenRewardLabel = null;
     this.unitDisplays.clear();
@@ -542,31 +540,12 @@ export class BattleScene extends Phaser.Scene {
 
     this.selectedSkillId = skillId;
     this.pendingAction = 'skill';
-    this.pendingControlTargetIds = [];
     this.pendingItemTargetIds = [];
     if (category === 'defense') {
       this.submitDefenseSkill(skillId);
       return;
-    } else if (category === 'control') {
-      this.skillPickMode = 'control';
-      const needed = getBindTargetCount(skill.effect);
-      this.commandMenu.setSelectedSkillId(skillId);
-      this.setTopHudGuide(
-        needed <= 1
-          ? `Chọn mục tiêu cho ${skill.name}`
-          : `Chọn ${needed} kẻ địch cho ${skill.name} (0/${needed})`,
-      );
-      this.updateUnitViews();
-      return;
-    } else if (category === 'special') {
-      if (skill.effect === 'breakControlTeam' || skill.effect === 'immunityTeamThree') {
-        this.submitTeamSpecial(skillId);
-        return;
-      }
-      this.skillPickMode = 'support';
-    } else {
-      this.skillPickMode = 'attack';
     }
+    this.skillPickMode = 'attack';
     this.commandMenu.setSelectedSkillId(skillId);
     this.setTopHudGuide(`Chọn mục tiêu cho ${skill.name}`);
     this.updateUnitViews();
@@ -581,17 +560,6 @@ export class BattleScene extends Phaser.Scene {
       skillId,
       targetId: actor.id,
     };
-    if (this.turnManager.submitCommand(command)) {
-      soundManager.playUiClick();
-      this.resetPending();
-      this.updateUnitViews();
-    }
-  }
-
-  private submitTeamSpecial(skillId: string): void {
-    const actor = this.turnManager.getCurrentCommandUnit();
-    if (!actor) return;
-    const command: CombatCommand = { unitId: actor.id, type: 'special', skillId };
     if (this.turnManager.submitCommand(command)) {
       soundManager.playUiClick();
       this.resetPending();
@@ -919,52 +887,6 @@ export class BattleScene extends Phaser.Scene {
           return;
         }
         command = { unitId: actor.id, type: 'defense', skillId: this.selectedSkillId, targetId: unitId };
-      } else if (this.skillPickMode === 'control') {
-        if (target.side === actor.side) {
-          this.setTopHudGuide('Võ kỹ khống chế — hãy chọn kẻ địch.');
-          return;
-        }
-        if (target.isPet) return;
-
-        const needed = getBindTargetCount(skill.effect);
-        if (needed <= 0) return;
-
-        const pickedIndex = this.pendingControlTargetIds.indexOf(unitId);
-        if (pickedIndex >= 0) {
-          this.pendingControlTargetIds.splice(pickedIndex, 1);
-        } else if (this.pendingControlTargetIds.length < needed) {
-          this.pendingControlTargetIds.push(unitId);
-        } else {
-          this.setTopHudGuide(`Đã chọn đủ ${needed} kẻ địch — bấm lại để bỏ chọn hoặc đổi mục tiêu.`);
-          this.updateUnitViews();
-          return;
-        }
-
-        this.playBattleTargetSelectSound();
-
-        if (this.pendingControlTargetIds.length < needed) {
-          this.setTopHudGuide(
-            needed <= 1
-              ? `Chọn mục tiêu cho ${skill.name}`
-              : `Chọn ${needed} kẻ địch cho ${skill.name} (${this.pendingControlTargetIds.length}/${needed})`,
-          );
-          this.updateUnitViews();
-          return;
-        }
-
-        command = {
-          unitId: actor.id,
-          type: 'special',
-          skillId: this.selectedSkillId,
-          targetId: this.pendingControlTargetIds[0],
-          extraTargetIds: this.pendingControlTargetIds.slice(1),
-        };
-      } else if (this.skillPickMode === 'support') {
-        if (target.side !== actor.side) {
-          this.setTopHudGuide('Võ kỹ hỗ trợ — hãy chọn đồng minh.');
-          return;
-        }
-        command = { unitId: actor.id, type: 'special', skillId: this.selectedSkillId, targetId: unitId };
       } else {
         if (target.side === actor.side) {
           this.setTopHudGuide('Võ kỹ tấn công — hãy chọn kẻ địch.');
@@ -1064,16 +986,13 @@ export class BattleScene extends Phaser.Scene {
     this.pendingAction = null;
     this.selectedSkillId = null;
     this.skillPickMode = null;
-    this.pendingControlTargetIds = [];
     this.pendingItemTargetIds = [];
     this.commandMenu.setSelectedSkillId(null);
     this.hideBattleOverlay();
   }
 
-  /** Chưa chọn đủ mục tiêu khống chế / vật phẩm đa mục tiêu — không cho Đánh ngay. */
+  /** Chưa chọn đủ mục tiêu vật phẩm đa mục tiêu — không cho Đánh ngay. */
   private getIncompletePendingSelection(): string | null {
-    const control = this.getIncompleteControlSelection();
-    if (control) return control;
     return this.getIncompleteItemSelection();
   }
 
@@ -1099,32 +1018,6 @@ export class BattleScene extends Phaser.Scene {
     }
     if (this.pendingItemTargetIds.length < needed) {
       return `Chọn thêm ${needed - this.pendingItemTargetIds.length} kẻ địch (${this.pendingItemTargetIds.length}/${needed}).`;
-    }
-    return null;
-  }
-
-  private getIncompleteControlSelection(): string | null {
-    if (this.pendingAction !== 'skill' || this.skillPickMode !== 'control' || !this.selectedSkillId) {
-      return null;
-    }
-    const skill = getSkillById(this.selectedSkillId);
-    if (!skill) return null;
-    const needed = getBindTargetCount(skill.effect);
-    if (needed <= 0) return null;
-
-    const actor = this.turnManager.getCurrentCommandUnit();
-    if (!actor) return null;
-
-    const alreadySubmitted = this.turnManager.getSubmittedCommands().some(
-      (cmd) => cmd.unitId === actor.id && cmd.type === 'special' && cmd.skillId === this.selectedSkillId,
-    );
-    if (alreadySubmitted) return null;
-
-    if (this.pendingControlTargetIds.length === 0) {
-      return `Chọn ${needed} kẻ địch cho ${skill.name} trước khi đánh.`;
-    }
-    if (this.pendingControlTargetIds.length < needed) {
-      return `Chọn thêm ${needed - this.pendingControlTargetIds.length} kẻ địch (${this.pendingControlTargetIds.length}/${needed}).`;
     }
     return null;
   }
@@ -1190,17 +1083,6 @@ export class BattleScene extends Phaser.Scene {
     this.commandMenu.setFightNowEnabled(false);
     this.topHud.setGuide('');
 
-    this.turnBoundVisualIds.clear();
-    for (const result of results) {
-      if (result.effectApplied?.startsWith('bind')) {
-        for (const id of result.boundTargetIds ?? (result.targetId ? [result.targetId] : [])) {
-          this.turnBoundVisualIds.add(id);
-        }
-      }
-      if (result.blocked && result.message?.includes('khống chế')) {
-        this.turnBoundVisualIds.add(result.actorId);
-      }
-    }
     this.updateUnitViews();
 
     for (const display of this.unitDisplays.values()) {
@@ -1228,13 +1110,20 @@ export class BattleScene extends Phaser.Scene {
     this.playSimultaneousExecution(results, runningHp, runningQi, onComplete);
   }
 
-  /** GDD: toàn bộ phe ra chiêu đồng thời — animation 3s, số liệu bay lên cùng lúc tại 450ms. */
+  /** GDD: cả hai phe ra chiêu đồng thời — thời gian ra chiêu 3s (450ms + 1s + 1s). */
   private playSimultaneousExecution(
     results: CombatActionResult[],
     runningHp: Map<string, number>,
     runningQi: Map<string, number>,
     onComplete: () => void,
   ): void {
+    let projectileDepth = 0;
+    for (const intent of this.collectSkillProjectileIntents(results)) {
+      if (this.launchSkillProjectile(intent, projectileDepth)) {
+        projectileDepth += 1;
+      }
+    }
+
     for (const result of results) {
       if (!this.shouldPlayAttackAnim(result)) continue;
       const actorDisplay = this.unitDisplays.get(result.actorId);
@@ -1246,17 +1135,18 @@ export class BattleScene extends Phaser.Scene {
         targetDisplay ?? null,
         () => {},
         () => {},
-        COMBAT_ATTACK_ANIM_MS,
+        COMBAT_CAST_DURATION_MS,
+        COMBAT_DAMAGE_REVEAL_MS,
       );
     }
 
-    this.time.delayedCall(COMBAT_EXECUTION_HIT_MS, () => {
+    this.time.delayedCall(COMBAT_DAMAGE_REVEAL_MS, () => {
       for (const result of results) {
         this.applyResultVisuals(result, runningHp, runningQi);
       }
     });
 
-    this.time.delayedCall(COMBAT_ATTACK_ANIM_MS, () => {
+    this.time.delayedCall(COMBAT_CAST_DURATION_MS, () => {
       this.finishTurnAnimation(onComplete);
     });
   }
@@ -1267,11 +1157,107 @@ export class BattleScene extends Phaser.Scene {
     if (result.actionType === 'item') {
       return result.damage > 0 && Boolean(result.targetId && result.targetId !== result.actorId);
     }
-    if (result.actionType === 'special') return Boolean(result.skillId);
     if (result.actionType === 'attack' || result.actionType === 'normalAttack') {
       return Boolean(result.targetId && result.targetId !== result.actorId);
     }
     return false;
+  }
+
+  /** Chỉ võ kỹ thật (có skillId) — không gồm đánh thường / fallback hết Qi. */
+  private shouldLaunchSkillProjectile(result: CombatActionResult): boolean {
+    if (result.blocked || result.isNormalAttackFallback) return false;
+    if (result.actionType === 'defense' || result.actionType === 'normalAttack') return false;
+    if (!result.skillId) return false;
+    return this.getResultProjectileTargets(result).length > 0;
+  }
+
+  private shouldLaunchSkillProjectileFromCommand(cmd: CombatCommand): boolean {
+    if (cmd.type === 'defense' || cmd.type === 'normalAttack' || cmd.type === 'item') return false;
+    if (!cmd.skillId) return false;
+    return this.getCommandProjectileTargets(cmd).length > 0;
+  }
+
+  private getCommandProjectileTargets(cmd: CombatCommand): string[] {
+    if (cmd.type === 'attack' && cmd.targetId && cmd.targetId !== cmd.unitId) {
+      return [cmd.targetId];
+    }
+    return [];
+  }
+
+  private getResultProjectileTargets(result: CombatActionResult): string[] {
+    if (result.targetId && result.targetId !== result.actorId) return [result.targetId];
+    return [];
+  }
+
+  /** Ưu tiên lệnh người chơi đã chọn — vẫn bắn FX khi engine fallback đánh thường vì hết Qi. */
+  private collectSkillProjectileIntents(
+    results: CombatActionResult[],
+  ): { actorId: string; skillId: string; targetIds: string[] }[] {
+    const intents: { actorId: string; skillId: string; targetIds: string[] }[] = [];
+    const seenActors = new Set<string>();
+
+    for (const cmd of this.turnManager.getSubmittedCommands()) {
+      if (!this.allyIds.includes(cmd.unitId)) continue;
+      if (!this.shouldLaunchSkillProjectileFromCommand(cmd)) continue;
+      intents.push({
+        actorId: cmd.unitId,
+        skillId: cmd.skillId!,
+        targetIds: this.getCommandProjectileTargets(cmd),
+      });
+      seenActors.add(cmd.unitId);
+    }
+
+    for (const result of results) {
+      if (!this.allyIds.includes(result.actorId)) continue;
+      if (seenActors.has(result.actorId)) continue;
+      if (!this.shouldLaunchSkillProjectile(result) || !result.skillId) continue;
+      intents.push({
+        actorId: result.actorId,
+        skillId: result.skillId,
+        targetIds: this.getResultProjectileTargets(result),
+      });
+      seenActors.add(result.actorId);
+    }
+
+    return intents;
+  }
+
+  private getActorWeaponType(actorId: string): WeaponType | undefined {
+    const gs = GameState.getInstance();
+    const char = gs.characterManager.getCharacter(actorId);
+    return char?.weaponType;
+  }
+
+  private resolveSkillCastVisualForActor(skillId: string, actorId: string): SkillCastVisual | null {
+    return resolveSkillCastVisual(this, skillId, this.getActorWeaponType(actorId));
+  }
+
+  private resolveProjectileVisual(skillId: string, actorId: string): SkillCastVisual | null {
+    return this.resolveSkillCastVisualForActor(skillId, actorId);
+  }
+
+  private launchSkillProjectile(
+    intent: { actorId: string; skillId: string; targetIds: string[] },
+    depthOffset: number,
+  ): boolean {
+    const actorDisplay = this.unitDisplays.get(intent.actorId);
+    const visual = this.resolveProjectileVisual(intent.skillId, intent.actorId);
+    if (!actorDisplay || !visual) return false;
+
+    let launched = false;
+    let subIndex = 0;
+    for (const targetId of intent.targetIds) {
+      const targetDisplay = this.unitDisplays.get(targetId);
+      if (!targetDisplay) continue;
+      actorDisplay.launchSkillProjectileTo(
+        targetDisplay,
+        visual,
+        { depthOffset: depthOffset + subIndex },
+      );
+      subIndex += 1;
+      launched = true;
+    }
+    return launched;
   }
 
   private floaterPosForResult(
@@ -1301,15 +1287,17 @@ export class BattleScene extends Phaser.Scene {
 
     if (actorDisplay && mc && result.actorId === mc.id && result.damage > 0) {
       soundManager.playWeaponSwing(mc.weaponType);
-      actorDisplay.showSkillFx(weaponSwingFxKey(mc.weaponType));
     } else if (actorDisplay && result.damage > 0) {
       soundManager.playWeaponSwing('quyen');
     }
 
-    if (result.skillId) {
-      const fxKey = resolveSkillFxKey(result.skillId);
-      if (fxKey && actorDisplay) {
-        actorDisplay.showSkillFx(fxKey);
+    const hasProjectileTarget = Boolean(
+      result.skillId && result.targetId && result.targetId !== result.actorId,
+    );
+    if (result.skillId && !hasProjectileTarget) {
+      const castVisual = this.resolveSkillCastVisualForActor(result.skillId, result.actorId);
+      if (castVisual && actorDisplay) {
+        actorDisplay.showSkillCastFx(castVisual, COMBAT_SKILL_IMPACT_MS);
       }
     }
 
@@ -1371,30 +1359,9 @@ export class BattleScene extends Phaser.Scene {
     } else if (result.message && result.damage === 0 && result.healing === 0 && !result.blocked) {
       FloatingCombatText.spawn(this, x, y, result.message, 'info');
     }
-
-    if (result.effectApplied?.startsWith('bind')) {
-      const boundIds = result.boundTargetIds ?? (result.targetId ? [result.targetId] : []);
-      const bindFxKey = result.skillId ? resolveSkillFxKey(result.skillId) : null;
-      for (const boundId of boundIds) {
-        if (bindFxKey) {
-          this.unitDisplays.get(boundId)?.showSkillFx(bindFxKey);
-        }
-      }
-      this.updateUnitViews();
-    }
-
-    if (result.blocked && result.message?.includes('khống chế')) {
-      const blockedDisplay = actorDisplay ?? targetDisplay;
-      blockedDisplay?.setControlBoundVisual(true);
-      this.time.delayedCall(900, () => {
-        const fx = this.turnManager.getEngine().getSkillEffectsProcessor();
-        blockedDisplay?.setControlBoundVisual(fx.isBound(blockedDisplay.unitId));
-      });
-    }
   }
 
   private finishTurnAnimation(onComplete: () => void): void {
-    this.turnBoundVisualIds.clear();
     this.updateUnitViews();
     for (const display of this.unitDisplays.values()) {
       const unit = this.turnManager.getEngine().getUnit(display.unitId);
@@ -1930,9 +1897,6 @@ export class BattleScene extends Phaser.Scene {
         stagedTargets,
       );
       const isSupportTarget = this.shouldHighlightSupportTarget(id, currentUnit, stagedTargets);
-      const isBoundVisual = effects.isBound(id) || this.turnBoundVisualIds.has(id);
-
-      display.setControlBoundVisual(isBoundVisual);
       display.setTargetHighlight(isAttackTarget || isSupportTarget, isAttackTarget);
       display.setTurnIndicator(isCurrentTurn);
 
@@ -1940,16 +1904,8 @@ export class BattleScene extends Phaser.Scene {
         display.setDead();
       }
 
-      const status: string[] = [];
-      if (isBoundVisual) {
-        status.push(effects.isControlled(id) ? 'controlled' : 'pendingControl');
-      }
-      if (effects.isControlImmune(id)) status.push('controlImmune');
-      display.setStatusEffects(status);
-      display.setSkillOverlayIcons(
-        this.resolveDefenseOverlaySkillId(id, effects),
-        effects.getControlSkillIcon(id),
-      );
+      display.setStatusEffects([]);
+      display.setSkillOverlayIcons(this.resolveDefenseOverlaySkillId(id, effects));
     }
 
     this.topHud.setActiveUnit(currentUnit?.id ?? null);
@@ -1997,10 +1953,6 @@ export class BattleScene extends Phaser.Scene {
       if (cmd.type === 'item' && cmd.itemId) {
         return getBattleItemTargetSide(cmd.itemId) === 'enemy';
       }
-      if (cmd.type === 'special' && cmd.skillId) {
-        const skill = getSkillById(cmd.skillId);
-        return skill?.category !== 'defense';
-      }
       return false;
     }
 
@@ -2013,10 +1965,7 @@ export class BattleScene extends Phaser.Scene {
     if (this.pendingAction === 'item' && this.selectedSkillId) {
       return getBattleItemTargetSide(this.selectedSkillId) === 'enemy' && target.side !== actor.side;
     }
-    if (this.pendingAction === 'skill' && (this.skillPickMode === 'attack' || this.skillPickMode === 'control')) {
-      if (this.skillPickMode === 'control' && this.pendingControlTargetIds.includes(unitId)) {
-        return true;
-      }
+    if (this.pendingAction === 'skill' && this.skillPickMode === 'attack') {
       return target.side !== actor.side;
     }
     return false;
@@ -2038,10 +1987,6 @@ export class BattleScene extends Phaser.Scene {
       if (cmd?.type === 'item' && cmd.itemId) {
         return getBattleItemTargetSide(cmd.itemId) === 'ally';
       }
-      if (cmd?.type === 'special' && cmd.skillId) {
-        const skill = getSkillById(cmd.skillId);
-        return skill?.category === 'defense';
-      }
       return false;
     }
 
@@ -2051,7 +1996,7 @@ export class BattleScene extends Phaser.Scene {
     if (this.pendingAction === 'item' && this.selectedSkillId) {
       return getBattleItemTargetSide(this.selectedSkillId) === 'ally' && target.side === actor.side;
     }
-    if (this.pendingAction === 'skill' && (this.skillPickMode === 'defense' || this.skillPickMode === 'support')) {
+    if (this.pendingAction === 'skill' && this.skillPickMode === 'defense') {
       return target.side === actor.side;
     }
     return false;

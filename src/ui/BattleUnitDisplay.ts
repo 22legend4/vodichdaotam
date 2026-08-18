@@ -1,6 +1,15 @@
 import Phaser from 'phaser';
 import { UI_THEME, STATUS_ICONS, clampFontSizePx } from './theme.ts';
 import { resolveAvatarKey } from '../utils/AssetGenerator.ts';
+import {
+  COMBAT_SKILL_IMPACT_MS,
+  COMBAT_SKILL_MANIFEST_MS,
+  COMBAT_SKILL_TRAVEL_MS,
+} from '../constants/combatTiming.ts';
+import {
+  createSkillCastIcon,
+  type SkillCastVisual,
+} from '../utils/skillCastIcon.ts';
 import { AVATAR_W, AVATAR_H } from '../utils/assetDrawCharacters.ts';
 import { getSkillById } from '../data/skillsData.ts';
 import { createSkillIcon } from '../utils/skillIconAssets.ts';
@@ -12,7 +21,6 @@ import {
   drawBattleBaguaDiscGfx,
   drawFloatingSwordGfx,
   drawTargetBodyGlowGfx,
-  drawControlBoundGlowGfx,
 } from '../utils/assetDrawUi.ts';
 
 export interface BattleUnitDisplayConfig {
@@ -48,7 +56,6 @@ export class BattleUnitDisplay extends Phaser.GameObjects.Container {
   private discMode: SpiritDiscMode = 'none';
   private showFloatingSword = false;
   private showBodyGlow = false;
-  private showControlBoundGlow = false;
   private readonly spriteH = AVATAR_H;
   private readonly spriteW = AVATAR_W;
   private homeX: number;
@@ -173,9 +180,7 @@ export class BattleUnitDisplay extends Phaser.GameObjects.Container {
       this.setTargetBodyGlow(false);
       this.setSpiritDisc('enemy', false);
     } else {
-      if (!this.showControlBoundGlow) {
-        this.setTargetBodyGlow(false);
-      }
+      this.setTargetBodyGlow(false);
       if (this.discMode === 'enemy') {
         this.setSpiritDisc('none', false);
       }
@@ -186,7 +191,6 @@ export class BattleUnitDisplay extends Phaser.GameObjects.Container {
     this.setVisible(false);
     this.setSpiritDisc('none', false);
     this.setTargetBodyGlow(false);
-    this.setControlBoundVisual(false);
     this.hitZone.disableInteractive();
   }
 
@@ -208,44 +212,109 @@ export class BattleUnitDisplay extends Phaser.GameObjects.Container {
     });
   }
 
-  /** Icon võ kỹ thủ / khống chế — giữa thân nhân vật, không nền đen (ADD blend). */
-  setSkillOverlayIcons(defenseSkillId?: string, controlSkillId?: string): void {
+  /** Icon võ kỹ thủ — giữa thân nhân vật. */
+  setSkillOverlayIcons(defenseSkillId?: string): void {
     this.skillOverlay.removeAll(true);
 
-    const entries: { skillId: string; tint: number }[] = [];
-    if (defenseSkillId) entries.push({ skillId: defenseSkillId, tint: 0x4488ff });
-    if (controlSkillId) entries.push({ skillId: controlSkillId, tint: 0x44ff66 });
+    if (!defenseSkillId) return;
 
-    const size = 32;
-    const gap = 8;
-    const totalW = entries.length * size + Math.max(0, entries.length - 1) * gap;
-    let x = entries.length <= 1 ? 0 : -totalW / 2 + size / 2;
-
-    for (const { skillId, tint } of entries) {
-      const skill = getSkillById(skillId);
-      if (!skill) continue;
-      const icon = createSkillIcon(this.scene, x, 0, skill, size, tint);
-      if (!icon) continue;
-      icon.setBlendMode(Phaser.BlendModes.ADD);
-      this.skillOverlay.add(icon);
-      x += size + gap;
-    }
-
-    if (entries.length > 0) {
-      this.bringToTop(this.skillOverlay);
-    }
+    const skill = getSkillById(defenseSkillId);
+    if (!skill) return;
+    const icon = createSkillIcon(this.scene, 0, 0, skill, 32, 0x4488ff);
+    if (!icon) return;
+    icon.setBlendMode(Phaser.BlendModes.ADD);
+    this.skillOverlay.add(icon);
+    this.bringToTop(this.skillOverlay);
   }
 
-  showSkillFx(fxKey: string): void {
-    if (!this.scene.textures.exists(fxKey)) return;
-    const fx = this.scene.add.image(0, -12, fxKey).setDisplaySize(96, 96).setAlpha(0.9);
+  /** Tâm thân nhân vật (tọa độ world) — điểm phát / nhận hiệu ứng võ kỹ. */
+  getBodyCenterWorld(): { x: number; y: number } {
+    return { x: this.x, y: this.y - 12 };
+  }
+
+  /** Võ kỹ 3 pha: icon PNG có viền — xuất hiện → bay → nổ. */
+  launchSkillProjectileTo(
+    target: BattleUnitDisplay,
+    visual: SkillCastVisual,
+    options?: { depthOffset?: number },
+    onImpact?: () => void,
+  ): void {
+    if (!this.scene.textures.exists(visual.iconKey)) {
+      onImpact?.();
+      return;
+    }
+
+    const depth = UI_THEME.depth.units + 8 + (options?.depthOffset ?? 0);
+    const manifest = createSkillCastIcon(this.scene, visual.iconKey, visual.borderColor);
+    manifest.setPosition(0, -12);
+    manifest.setAlpha(0);
+    manifest.setDepth(depth);
+    this.add(manifest);
+    this.bringToTop(manifest);
+
+    this.scene.tweens.add({
+      targets: manifest,
+      alpha: 1,
+      duration: COMBAT_SKILL_MANIFEST_MS,
+      ease: 'Cubic.easeOut',
+    });
+
+    this.scene.time.delayedCall(COMBAT_SKILL_MANIFEST_MS, () => {
+      manifest.destroy();
+      this.flySkillCastIconTo(target, visual, depth, onImpact);
+    });
+  }
+
+  private flySkillCastIconTo(
+    target: BattleUnitDisplay,
+    visual: SkillCastVisual,
+    depth: number,
+    onImpact?: () => void,
+  ): void {
+    const from = this.getBodyCenterWorld();
+    const to = target.getBodyCenterWorld();
+    const midX = (from.x + to.x) / 2;
+    const midY = Math.min(from.y, to.y) - 48;
+    const angle = Phaser.Math.Angle.Between(from.x, from.y, to.x, to.y);
+
+    const projectile = createSkillCastIcon(this.scene, visual.iconKey, visual.borderColor);
+    projectile.setPosition(from.x, from.y);
+    projectile.setRotation(angle);
+    projectile.setDepth(depth);
+    projectile.setAlpha(0.95);
+
+    this.scene.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: COMBAT_SKILL_TRAVEL_MS,
+      ease: 'Cubic.easeIn',
+      onUpdate: (tw) => {
+        const tVal = tw.getValue() ?? 0;
+        const u = 1 - tVal;
+        projectile.x = u * u * from.x + 2 * u * tVal * midX + tVal * tVal * to.x;
+        projectile.y = u * u * from.y + 2 * u * tVal * midY + tVal * tVal * to.y;
+        projectile.setScale(1 + tVal * 0.06);
+      },
+      onComplete: () => {
+        projectile.destroy();
+        target.showSkillCastFx(visual, COMBAT_SKILL_IMPACT_MS);
+        onImpact?.();
+      },
+    });
+  }
+
+  showSkillCastFx(visual: SkillCastVisual, impactMs = COMBAT_SKILL_IMPACT_MS): void {
+    if (!this.scene.textures.exists(visual.iconKey)) return;
+    const fx = createSkillCastIcon(this.scene, visual.iconKey, visual.borderColor);
+    fx.setPosition(0, -12);
+    fx.setAlpha(0.95);
     this.add(fx);
     this.bringToTop(fx);
     this.scene.tweens.add({
       targets: fx,
       alpha: 0,
-      scale: 1.4,
-      duration: 650,
+      scale: 1.12,
+      duration: impactMs,
       ease: 'Cubic.easeOut',
       onComplete: () => fx.destroy(),
     });
@@ -265,6 +334,7 @@ export class BattleUnitDisplay extends Phaser.GameObjects.Container {
     onHit: () => void,
     onComplete: () => void,
     durationMs = 3000,
+    hitAtMs = 450,
   ): void {
     this.scene.tweens.killTweensOf(this);
     this.x = this.homeX;
@@ -282,7 +352,7 @@ export class BattleUnitDisplay extends Phaser.GameObjects.Container {
       }
     }
 
-    this.scene.time.delayedCall(450, () => {
+    this.scene.time.delayedCall(hitAtMs, () => {
       onHit();
       target?.playHitFlash();
     });
@@ -323,41 +393,8 @@ export class BattleUnitDisplay extends Phaser.GameObjects.Container {
     this.playStationaryAttack(target, onHit, onComplete, 3000);
   }
 
-  /** Vòng tím — địch đang / sắp bị khống chế. */
-  setControlBoundVisual(active: boolean): void {
-    if (this.showControlBoundGlow === active) return;
-    this.showControlBoundGlow = active;
-    this.controlBoundPulseTween?.stop();
-    this.controlBoundPulseTween = undefined;
-
-    if (!active) {
-      if (!this.showBodyGlow) {
-        this.targetBodyGlow.setVisible(false);
-        this.targetBodyGlowGfx.clear();
-      } else {
-        this.redrawTargetBodyGlow();
-      }
-      return;
-    }
-
-    this.redrawControlBoundGlow();
-    this.targetBodyGlow.setVisible(true);
-    this.targetBodyGlow.setAlpha(0.9);
-    this.sendToBack(this.targetBodyGlow);
-
-    this.controlBoundPulseTween = this.scene.tweens.add({
-      targets: this.targetBodyGlow,
-      alpha: { from: 0.5, to: 1 },
-      scaleX: { from: 0.94, to: 1.06 },
-      scaleY: { from: 0.94, to: 1.06 },
-      duration: 650,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
-  }
-
-  private controlBoundPulseTween?: Phaser.Tweens.Tween;
+  /** @deprecated Không còn võ kỹ khống chế. */
+  setControlBoundVisual(_active: boolean): void {}
 
   private setTargetBodyGlow(active: boolean): void {
     if (this.showBodyGlow === active) return;
@@ -366,12 +403,8 @@ export class BattleUnitDisplay extends Phaser.GameObjects.Container {
     this.bodyGlowPulseTween = undefined;
 
     if (!active) {
-      if (!this.showControlBoundGlow) {
-        this.targetBodyGlow.setVisible(false);
-        this.targetBodyGlowGfx.clear();
-      } else {
-        this.redrawControlBoundGlow();
-      }
+      this.targetBodyGlow.setVisible(false);
+      this.targetBodyGlowGfx.clear();
       return;
     }
 
@@ -395,11 +428,6 @@ export class BattleUnitDisplay extends Phaser.GameObjects.Container {
   private redrawTargetBodyGlow(): void {
     this.targetBodyGlowGfx.clear();
     drawTargetBodyGlowGfx(this.targetBodyGlowGfx, this.avatarDisplayW, this.avatarDisplayH);
-  }
-
-  private redrawControlBoundGlow(): void {
-    this.targetBodyGlowGfx.clear();
-    drawControlBoundGlowGfx(this.targetBodyGlowGfx, this.avatarDisplayW, this.avatarDisplayH);
   }
 
   private setSpiritDisc(mode: SpiritDiscMode, showSword: boolean): void {

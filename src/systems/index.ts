@@ -27,9 +27,6 @@ export {
   SkillEffectsProcessor,
 } from './SkillEffectsProcessor.ts';
 
-export { isSpecialSkill, getSkillEffectId } from '../data/skillsData.ts';
-
 export type {
   UnitActiveEffects,
-  SkillEffectApplyContext,
 } from './SkillEffectsProcessor.ts';

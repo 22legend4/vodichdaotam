@@ -8,8 +8,6 @@ import { REALM_ORDER } from '../../managers/CharacterManager.ts';
 import {
   SPATIAL_RING_ITEM_ID,
   EXPANDED_INVENTORY_CAPACITY,
-  CHUYEN_SINH_DAN_ITEM_ID,
-  resolveChuyenSinhDanItemId,
 } from '../../managers/InventoryManager.ts';
 import { matchesInventoryTab, type InventoryFilter } from '../../data/inventoryTabCategories.ts';
 import { UI_THEME, clampFontSizePx, REALM_LABELS, WEAPON_LABELS } from '../theme.ts';
@@ -1074,22 +1072,6 @@ export class InventoryModal {
     }
 
     const itemId = this.selectedItemId;
-    if (itemId === CHUYEN_SINH_DAN_ITEM_ID || itemId === 'med_chuyenSinhDan') {
-      const gs = GameState.getInstance();
-      const consumeId = resolveChuyenSinhDanItemId(gs.inventoryManager);
-      if (!consumeId) {
-        this.showToast('Không có Chuyển sinh đan.');
-        return;
-      }
-      const item = getItemById(consumeId);
-      this.showConfirmDialog(
-        `Xác nhận dùng Chuyển sinh đan\n\n${item?.description ?? 'Chuyển sinh đan.'}\n\nHành động này không thể hoàn tác.`,
-        () => this.applyUseItem(itemId),
-        () => {},
-      );
-      return;
-    }
-
     this.applyUseItem(itemId);
   }
 
@@ -1260,26 +1242,6 @@ export class InventoryModal {
       gs.staminaManager.addStamina(restored);
       gs.persist();
       return { success: true, message: `Hồi ${restored} điểm thể lực.` };
-    }
-
-    if (itemId === CHUYEN_SINH_DAN_ITEM_ID || itemId === 'med_chuyenSinhDan') {
-      const mc = gs.characterManager.getMainCharacter();
-      if (!mc) {
-        return { success: false, message: 'Chưa có nhân vật chính.' };
-      }
-      const consumeId = resolveChuyenSinhDanItemId(gs.inventoryManager);
-      if (!consumeId) {
-        return { success: false, message: 'Không có Chuyển sinh đan.' };
-      }
-      if (!gs.inventoryManager.removeItem(consumeId, 1)) {
-        return { success: false, message: 'Không thể dùng Chuyển sinh đan.' };
-      }
-      const result = gs.applyReincarnation(mc.id);
-      if (result.success) {
-        return { success: true, message: result.message, fullRefresh: true };
-      }
-      gs.inventoryManager.addItem(consumeId, 1);
-      return { success: false, message: result.message };
     }
 
     if (itemId === 'item_pheVo') {

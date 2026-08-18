@@ -21,6 +21,7 @@ import {
   sumLearnedSkillStats,
   buildBattleSkillIds,
   resolveBattleSkillIdsFromLoadout,
+  isRemovedSkill,
   BATTLE_SKILL_SLOT_COUNT,
 } from '../data/skillsData.ts';
 import { REALM_LABELS } from '../ui/theme.ts';
@@ -105,7 +106,7 @@ export interface CharacterMeta {
   learnedSkillIds: string[];
   /** 4 ô võ kỹ mang vào trận (null = trống). */
   battleSkillLoadout?: (string | null)[];
-  /** Đã dùng Chuyển sinh đan — mở võ kỹ Tứ Phân Quy Nguyên Khí. */
+  /** Đã mở nhánh võ kỹ chuyển sinh (Huyết Long Trì hoặc Chuyển sinh tại Cổng dịch chuyển). */
   hasReincarnated?: boolean;
 }
 
@@ -478,7 +479,7 @@ export class CharacterManager {
   }
 
   getLearnedSkillIds(characterId: string): string[] {
-    return [...(this.meta.get(characterId)?.learnedSkillIds ?? [])];
+    return (this.meta.get(characterId)?.learnedSkillIds ?? []).filter((id) => !isRemovedSkill(id));
   }
 
   getBattleSkillLoadout(characterId: string): (string | null)[] {
@@ -547,7 +548,8 @@ export class CharacterManager {
     const source = meta.battleSkillLoadout;
     if (source?.length) {
       for (let i = 0; i < BATTLE_SKILL_SLOT_COUNT; i += 1) {
-        slots[i] = source[i] ?? null;
+        const id = source[i] ?? null;
+        slots[i] = id && !isRemovedSkill(id) ? id : null;
       }
     } else {
       const auto = buildBattleSkillIds(meta.learnedSkillIds, character.weaponType);
@@ -567,7 +569,7 @@ export class CharacterManager {
     return this.meta.get(characterId)?.hasReincarnated === true;
   }
 
-  /** Chuyển sinh đan — reset nhân vật chính, xóa đồng đội thu phục, mở võ kỹ chuyển sinh. */
+  /** Chuyển sinh tại Cổng dịch chuyển — reset nhân vật chính, xóa đồng đội thu phục, mở võ kỹ chuyển sinh. */
   reincarnate(characterId: string): { success: boolean; message: string } {
     const character = this.characters.get(characterId);
     const characterMeta = this.meta.get(characterId);
@@ -575,7 +577,7 @@ export class CharacterManager {
       return { success: false, message: 'Không tìm thấy nhân vật.' };
     }
     if (characterId !== this.mainCharacterId) {
-      return { success: false, message: 'Chỉ nhân vật chính mới dùng được Chuyển sinh đan.' };
+      return { success: false, message: 'Chỉ nhân vật chính mới chuyển sinh được tại Cổng dịch chuyển.' };
     }
 
     const companionIds = [...this.characters.keys()].filter((id) => {
@@ -901,9 +903,10 @@ export class CharacterManager {
       if (meta.skillPoints === undefined) meta.skillPoints = 0;
       if (!meta.learnedSkillIds?.length && character) {
         meta.learnedSkillIds = [WEAPON_BASIC_SKILL[character.weaponType]];
-      } else       if (!meta.learnedSkillIds) {
+      } else if (!meta.learnedSkillIds) {
         meta.learnedSkillIds = [];
       }
+      meta.learnedSkillIds = meta.learnedSkillIds.filter((id) => !isRemovedSkill(id));
       if (meta.hasReincarnated === undefined) meta.hasReincarnated = false;
       if (character) {
         this.normalizeBattleSkillLoadout(meta, character);

@@ -662,12 +662,23 @@ export function getChapterEdges(chapterId: string): MapEdge[] {
   return edges;
 }
 
+/** Giới Tâm — Huyết Long Trì hoặc Chuyển sinh tại cổng, và phải vượt ải 9. */
+export function isGioiTamUnlocked(
+  clearedIds: readonly string[],
+  huyetLongTriComplete: boolean,
+  teleportGateReincarnationUsed: boolean,
+): boolean {
+  if (!clearedIds.includes(CH9_GATE_9_ID)) return false;
+  return huyetLongTriComplete || teleportGateReincarnationUsed;
+}
+
 export function getStageAccessState(
   stage: MapStageNode,
   clearedIds: readonly string[],
   tutorialComplete: boolean,
   tinhThach: number,
   huyetLongTriComplete = false,
+  teleportGateReincarnationUsed = false,
 ): StageAccessState {
   if (isYeuVucStage(stage)) {
     if (!clearedIds.includes(CH5_GATE_12_ID)) return 'locked';
@@ -698,14 +709,17 @@ export function getStageAccessState(
   }
 
   if (stage.id === CH9_TELEPORT_HUB_ID) {
+    if (teleportGateReincarnationUsed) return 'locked';
     if (DEV_UNLOCK_CH9_SPECIAL_HUBS) return 'available';
-    return clearedIds.includes(CH9_GATE_9_ID) ? 'cleared' : 'locked';
+    return clearedIds.includes(CH9_GATE_9_ID) ? 'available' : 'locked';
   }
 
   if (stage.id === CH9_GIOI_TAM_HUB_ID) {
     if (clearedIds.includes(stage.id)) return 'cleared';
     if (DEV_UNLOCK_CH9_SPECIAL_HUBS) return 'available';
-    if (!clearedIds.includes(CH9_GATE_9_ID) || !huyetLongTriComplete) return 'locked';
+    if (!isGioiTamUnlocked(clearedIds, huyetLongTriComplete, teleportGateReincarnationUsed)) {
+      return 'locked';
+    }
     return 'available';
   }
 
@@ -741,6 +755,7 @@ export function getStageLockReason(
   tutorialComplete: boolean,
   tinhThach: number,
   huyetLongTriComplete = false,
+  teleportGateReincarnationUsed = false,
 ): string {
   if (isYeuVucStage(stage) && !clearedIds.includes(CH5_GATE_12_ID)) {
     return 'Vượt qua Cửa 12 trước';
@@ -788,8 +803,13 @@ export function getStageLockReason(
     return 'Vượt qua Cửa ải 9 trước';
   }
 
-  if (stage.id === CH9_GIOI_TAM_HUB_ID && !DEV_UNLOCK_CH9_SPECIAL_HUBS && !huyetLongTriComplete) {
-    return 'Tu luyện Huyết Long Trì tại Cổng dịch chuyển trước';
+  if (
+    stage.id === CH9_GIOI_TAM_HUB_ID
+    && !DEV_UNLOCK_CH9_SPECIAL_HUBS
+    && clearedIds.includes(CH9_GATE_9_ID)
+    && !isGioiTamUnlocked(clearedIds, huyetLongTriComplete, teleportGateReincarnationUsed)
+  ) {
+    return 'Mở khóa qua Cổng dịch chuyển trước (Huyết Long Trì hoặc Chuyển sinh)';
   }
 
   if (stage.isHub || clearedIds.includes(stage.id)) return '';

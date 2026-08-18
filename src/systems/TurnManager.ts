@@ -1,5 +1,5 @@
 import { COMBAT_CONSTANTS } from '../constants/gameRules.ts';
-import { getSkillById, isSpecialSkill, getBindTargetCount } from '../data/skillsData.ts';
+import { getSkillById } from '../data/skillsData.ts';
 import { CombatEngine } from './CombatEngine.ts';
 import { MEDICINE_EFFECTS } from '../managers/InventoryManager.ts';
 import type {
@@ -193,41 +193,6 @@ export class TurnManager {
         const target = this.engine.getUnit(command.targetId);
         if (!skill || !target || target.side !== actor.side || !target.isAlive) return false;
         return skill.category === 'defense';
-      }
-      case 'special': {
-        if (!command.skillId) return false;
-        const skill = getSkillById(command.skillId);
-        if (!skill || !isSpecialSkill(skill)) return false;
-        if (skill.category === 'control') {
-          const needed = getBindTargetCount(skill.effect);
-          if (needed <= 0) return false;
-
-          const targetIds = [
-            ...(command.targetId ? [command.targetId] : []),
-            ...(command.extraTargetIds ?? []),
-          ];
-
-          if (targetIds.length === 0) {
-            return actor.side === 'enemy';
-          }
-
-          if (targetIds.length !== needed) return false;
-          if (new Set(targetIds).size !== targetIds.length) return false;
-
-          return targetIds.every((id) => {
-            const target = this.engine.getUnit(id);
-            return Boolean(target && target.side !== actor.side && target.isAlive && !target.isPet);
-          });
-        }
-        if (skill.type === 'immunity' && skill.effect === 'immunityTwoTwo') {
-          if (!command.targetId) return false;
-          const target = this.engine.getUnit(command.targetId);
-          return Boolean(target && target.side === actor.side && target.isAlive);
-        }
-        if (skill.type === 'breakControl' || skill.effect === 'breakControlTeam' || skill.effect === 'immunityTeamThree') {
-          return true;
-        }
-        return Boolean(command.targetId);
       }
       case 'item': {
         if (!command.itemId) return false;

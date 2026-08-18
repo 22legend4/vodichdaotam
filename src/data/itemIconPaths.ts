@@ -3,8 +3,6 @@ import type { ItemData, ItemRarity } from '../types/game.ts';
 /** Đường dẫn PNG (relative public/assets/icons/) theo đề xuất icon Game-icons. */
 export const ITEM_ICON_PATHS: Record<string, string> = {
   // --- Dược phẩm ---
-  med_chuyenSinhDan: 'delapouite/upgrade.png',
-  item_chuyenSinhDan: 'delapouite/upgrade.png',
   med_chuChiDuoc: 'lorc/pill.png',
   med_cuongSinhDan: 'delapouite/health-potion.png',
   med_nghenhXuanThao: 'delapouite/grass.png',

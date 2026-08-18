@@ -19,7 +19,6 @@ import {
   SKILL_EQUIP_GUIDE_START_EVENT,
   SKILL_EQUIP_GUIDE_FINISHED_EVENT,
 } from '../ui/index.ts';
-import { HUYET_LONG_TRI_SKILL_NOTICE } from '../data/chapter9Stages.ts';
 import { addSceneBackground } from '../utils/AssetGenerator.ts';
 
 export interface MainHubSceneData {
@@ -188,11 +187,7 @@ export class MainHubScene extends Phaser.Scene {
       GameState.getInstance().setActiveMapChapter(this.mapChapterIdOnCreate);
       this.mapChapterIdOnCreate = undefined;
     }
-    this.openModal(() => new MapModal(this, {
-      onHuyetLongTriComplete: () => {
-        this.openModal(() => new SkillModal(this, undefined, undefined, HUYET_LONG_TRI_SKILL_NOTICE));
-      },
-    }));
+    this.openModal(() => new MapModal(this));
   }
 
   private openModal(factory: () => { container?: { on?: (ev: string, fn: () => void) => void } }): void {
