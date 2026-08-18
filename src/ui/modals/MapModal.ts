@@ -437,7 +437,7 @@ export class MapModal extends ModalBase {
 
     const visibleStages = stages.filter((s) => {
       if (s.mapHidden) return false;
-      if (s.id === CH9_TELEPORT_HUB_ID && GameState.getInstance().isTeleportGateReincarnationUsed()) {
+      if (s.id === CH9_TELEPORT_HUB_ID && GameState.getInstance().isTeleportGateChoiceMade()) {
         return false;
       }
       return true;
@@ -692,7 +692,12 @@ export class MapModal extends ModalBase {
           }
         }
         if (node.id === CH9_TELEPORT_HUB_ID) {
-          const cleared = GameState.getInstance().progress.clearedStageIds;
+          const gsHub = GameState.getInstance();
+          if (gsHub.isTeleportGateChoiceMade()) {
+            this.showToast('Bạn đã hoàn thành lựa chọn tại Cổng dịch chuyển.');
+            return;
+          }
+          const cleared = gsHub.progress.clearedStageIds;
           if (!DEV_UNLOCK_CH9_SPECIAL_HUBS && !cleared.includes(CH9_GATE_9_ID)) {
             this.showToast('Vượt qua Cửa ải 9 trước');
             return;

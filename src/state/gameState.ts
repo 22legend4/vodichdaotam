@@ -358,6 +358,11 @@ export class GameState {
     return this.progress.teleportGateReincarnationUsed === true;
   }
 
+  /** Đã chọn Huyết Long Trì hoặc Chuyển sinh tại cổng — cổng không còn hiện. */
+  isTeleportGateChoiceMade(): boolean {
+    return this.isHuyetLongTriComplete() || this.isTeleportGateReincarnationUsed();
+  }
+
   /**
    * Chuyển sinh tại Cổng dịch chuyển — áp dụng ngay (chỉ có duy nhất tại cổng), cổng biến mất;
    * sau khi vượt lại ải 9 chương 9 mới vào được Giới Tâm.

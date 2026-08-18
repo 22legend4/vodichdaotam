@@ -662,6 +662,14 @@ export function getChapterEdges(chapterId: string): MapEdge[] {
   return edges;
 }
 
+/** Cổng dịch chuyển biến mất sau khi chọn Huyết Long Trì hoặc Chuyển sinh. */
+export function isTeleportGateHidden(
+  huyetLongTriComplete: boolean,
+  teleportGateReincarnationUsed: boolean,
+): boolean {
+  return huyetLongTriComplete || teleportGateReincarnationUsed;
+}
+
 /** Giới Tâm — Huyết Long Trì hoặc Chuyển sinh tại cổng, và phải vượt ải 9. */
 export function isGioiTamUnlocked(
   clearedIds: readonly string[],
@@ -709,7 +717,7 @@ export function getStageAccessState(
   }
 
   if (stage.id === CH9_TELEPORT_HUB_ID) {
-    if (teleportGateReincarnationUsed) return 'locked';
+    if (isTeleportGateHidden(huyetLongTriComplete, teleportGateReincarnationUsed)) return 'locked';
     if (DEV_UNLOCK_CH9_SPECIAL_HUBS) return 'available';
     return clearedIds.includes(CH9_GATE_9_ID) ? 'available' : 'locked';
   }
