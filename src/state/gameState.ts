@@ -4,8 +4,6 @@ import { StaminaManager } from '../managers/StaminaManager.ts';
 import { SaveManager, type StageProgress, SKILL_INTRO_MAX_SHOWS } from '../managers/SaveManager.ts';
 import { DailyRewardManager } from '../managers/DailyRewardManager.ts';
 import { GiftcodeManager } from '../managers/GiftcodeManager.ts';
-import { ArenaManager } from '../managers/ArenaManager.ts';
-import { TournamentManager } from '../managers/TournamentManager.ts';
 import { LeoThapManager } from '../managers/LeoThapManager.ts';
 import { CultivationManager } from '../managers/CultivationManager.ts';
 import { WalletManager } from '../managers/WalletManager.ts';
@@ -29,8 +27,6 @@ export class GameState {
   readonly saveManager = new SaveManager();
   readonly dailyRewardManager = new DailyRewardManager();
   readonly giftcodeManager = new GiftcodeManager();
-  readonly arenaManager = new ArenaManager();
-  readonly tournamentManager = new TournamentManager();
   readonly leoThapManager = new LeoThapManager();
   readonly cultivationManager = new CultivationManager();
   readonly walletManager = new WalletManager();
@@ -62,7 +58,6 @@ export class GameState {
         this.characterManager,
         this.inventoryManager,
         this.staminaManager,
-        this.tournamentManager,
       );
       this.playerDisplayId = saveData.playerDisplayId ?? null;
       this.guestAccountId = saveData.guestAccountId ?? loadGuestSession()?.guestAccountId ?? null;
@@ -132,7 +127,6 @@ export class GameState {
       this.inventoryManager,
       this.staminaManager,
       this.progress,
-      this.tournamentManager,
       this.playerDisplayId,
       this.guestAccountId,
       this.giftcodeManager.exportState(),

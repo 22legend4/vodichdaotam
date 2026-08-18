@@ -65,7 +65,7 @@ function n(id: string, count: number): string[] {
  * | 2     | 2 npc1                            | 70  |                         |
  * | 3     | 1 npc2                            | 70  | Nhất Tiễn Song Điêu     |
  * | 4     | 1 npc1, 1 npc2                    | 70  | 1 Tinh thạch            |
- * | 5     | 3 npc1                            | 90  | 2 Tinh thạch            |
+ * | 5     | đ1: 1 npc1 / đ2: 2 npc1           | 90  | 2 Tinh thạch            |
  * | 1A    | đ1: 2 npc1 / đ2: 1 npc2           | 90  | Giải cứu đồng đội 1     |
  * | 6     | 2 npc2                            | 90  | 3 Tinh thạch            |
  * | 7     | 1 npc3                            | 100 | 3 Tinh thạch            |
@@ -105,7 +105,9 @@ const CHAPTER_1_STAGES: MapStageNode[] = [
   stage({
     id: 'ch1_gate_5', name: 'Cửa 5', order: 5, displayLabel: '5',
     gridX: 3, gridY: 2, prerequisites: ['ch1_gate_4'],
-    enemyNpcIds: ['npc1', 'npc1', 'npc1'], expReward: 90, tinhThachReward: 2,
+    enemyWaves: [['npc1'], ['npc1', 'npc1']],
+    enemyNpcIds: ['npc1'],
+    expReward: 90, tinhThachReward: 2,
   }),
   stage({
     id: 'ch1_companion_1a', name: 'Cửa 1A', order: 6, type: 'companionUnlock', displayLabel: '1A',

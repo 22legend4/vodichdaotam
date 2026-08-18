@@ -65,7 +65,6 @@ export type IconSlot =
   | 'beast_pet'
   | 'hub_event'
   | 'hub_daily'
-  | 'hub_challenge'
   | 'hub_map'
   | 'hub_shop'
   | 'hub_character';
@@ -159,7 +158,6 @@ const SLOT_KEYWORDS: Record<IconSlot, string[]> = {
   beast_pet: ['dragon', 'wolf', 'fox'],
   hub_event: ['gift', 'trophy'],
   hub_daily: ['present', 'gift', 'wrapped'],
-  hub_challenge: ['arena', 'trophy'],
   hub_map: ['scroll', 'map'],
   hub_shop: ['gift', 'crate', 'bag'],
   hub_character: ['hood', 'armor', 'wolf'],
@@ -177,7 +175,6 @@ const ICON_TINTS: Record<IconSlot, number> = {
   beast_pet: 0xffaacc,
   hub_event: 0xffcc00,
   hub_daily: 0xff9966,
-  hub_challenge: 0xff4500,
   hub_map: 0x9933ff,
   hub_shop: 0xff3366,
   hub_character: 0x50c878,

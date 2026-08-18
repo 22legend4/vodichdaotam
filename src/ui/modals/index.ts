@@ -1,8 +1,5 @@
 export { ModalBase } from './ModalBase.ts';
 export { DailyRewardModal } from './DailyRewardModal.ts';
-export { ArenaModal } from './ArenaModal.ts';
-export { BloodyArenaModal } from './BloodyArenaModal.ts';
-export { HoaSonLuanVoModal } from './HoaSonLuanVoModal.ts';
 export { CharacterModal } from './CharacterModal.ts';
 export { InventoryModal } from './InventoryModal.ts';
 export { MeditationModal } from './MeditationModal.ts';

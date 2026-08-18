@@ -15,7 +15,6 @@ const SLOT_KEYWORDS = {
   equip_gear: ['armor', 'boots', 'hood'],
   beast_pet: ['dragon', 'wolf', 'fox'],
   hub_event: ['gift', 'trophy'],
-  hub_challenge: ['arena', 'trophy'],
   hub_map: ['scroll', 'map'],
   hub_shop: ['gift', 'crate', 'bag'],
   hub_character: ['hood', 'armor', 'wolf'],

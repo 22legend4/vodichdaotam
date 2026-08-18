@@ -121,7 +121,6 @@ export const ASSET_KEYS = {
   hubPlayerProfile: 'hub_player_profile_avatar',
   uiIconTinhThach: 'ui_icon_tinh_thach',
   uiIconGioiThuy: 'ui_icon_gioi_thuy',
-  uiIconFriends: 'ui_icon_friends',
   uiIconShop: 'ui_icon_shop',
 } as const;
 
@@ -416,7 +415,9 @@ export function battleSlotPositions(
     { x: 1020, y: 520 },
   ];
   const base = isEnemy ? enemyFormation : allyFormation;
-  return base.slice(0, count);
+  /** Cùng hàng: slot 0–1 (hàng trước), 2–4 (hàng sau). */
+  const slotIndices = Array.from({ length: Math.min(count, 5) }, (_, i) => i);
+  return slotIndices.map((i) => base[i]!);
 }
 
 /** Portrait key cho hội thoại. */

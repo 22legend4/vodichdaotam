@@ -63,8 +63,6 @@ export class MainHubScene extends Phaser.Scene {
         gs.syncActiveMapChapterFromProgress();
         this.openMapModal();
       },
-      onChallenge: () => this.hubLayout.showToast('Sắp ra mắt'),
-      onFriends: () => this.hubLayout.showToast('Bạn bè — sắp ra mắt'),
       onSettings: () => this.openModal(() => new SettingsModal(this)),
       onPlayerRoster: () => this.openModal(() => new PlayerRosterModal(this)),
       onSkills: () => {

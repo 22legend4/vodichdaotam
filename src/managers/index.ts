@@ -27,16 +27,3 @@ export type { GameSaveData, StageProgress } from './SaveManager.ts';
 
 export { DailyRewardManager, DAILY_REWARDS } from './DailyRewardManager.ts';
 export type { DailyRewardEntry, DailyRewardSaveData, ClaimResult, RewardGrant } from './DailyRewardManager.ts';
-
-export { ArenaManager } from './ArenaManager.ts';
-export type { ArenaOpponent, ArenaChallengeResult } from './ArenaManager.ts';
-
-export { TournamentManager, TOURNAMENT_CONFIGS } from './TournamentManager.ts';
-export type {
-  TournamentId,
-  TournamentMatch,
-  TournamentRegistration,
-  TournamentSaveState,
-  TournamentConfig,
-  RegisterResult,
-} from './TournamentManager.ts';

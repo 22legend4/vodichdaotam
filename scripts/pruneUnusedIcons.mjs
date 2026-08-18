@@ -30,7 +30,6 @@ const SLOT_KEYWORDS = {
   beast_pet: ['dragon', 'wolf', 'fox'],
   hub_event: ['gift', 'trophy'],
   hub_daily: ['present', 'gift', 'wrapped'],
-  hub_challenge: ['arena', 'trophy'],
   hub_map: ['scroll', 'map'],
   hub_shop: ['gift', 'crate', 'bag'],
   hub_character: ['hood', 'armor', 'wolf'],

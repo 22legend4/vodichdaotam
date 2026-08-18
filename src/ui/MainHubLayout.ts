@@ -27,7 +27,6 @@ const HUB_ORANGE = 0xf8b181;
 const HUB_BTN = 0xc97a4a;
 const BTN_GAP_BOTTOM = 130;
 const BTN_GAP_RIGHT = 112;
-const BTN_GAP_TOP = 102;
 const BTN_RADIUS = JADE_DISC_RADIUS;
 /** Nút Bản Đồ — lớn hơn các nút jade khác 20px đường kính. */
 const MAP_BTN_RADIUS = BTN_RADIUS + 10;
@@ -65,7 +64,6 @@ const CURRENCY_ICON_KEYS: Record<string, string> = {
 const ICON_SLOT_LABELS: Partial<Record<IconSlot, string>> = {
   hub_forge: 'Luyện Khí',
   hub_meditate: 'Tu Luyện',
-  hub_challenge: 'Thách Đấu',
   hub_event: 'Sự Kiện',
   hub_daily: 'Quà tặng hàng ngày',
   hub_inventory: 'Túi Đồ',
@@ -89,8 +87,6 @@ export interface MainHubLayoutCallbacks {
   onInventory: () => void;
   onMeditate: () => void;
   onMap: () => void;
-  onChallenge: () => void;
-  onFriends: () => void;
   onSettings: () => void;
   onPlayerRoster: () => void;
   onEvents: () => void;
@@ -131,7 +127,7 @@ function fitTextureDisplaySize(
   return { w: frameW * scale, h: frameH * scale };
 }
 
-/** Giao diện sảnh chính theo wireframe: HUD trên, chat trái, sự kiện phải, menu dưới. */
+/** Giao diện sảnh chính — HUD trên, sự kiện phải, menu dưới (bản offline). */
 export class MainHubLayout extends Phaser.GameObjects.Container {
   private nameText!: Phaser.GameObjects.Text;
   private idText!: Phaser.GameObjects.Text;
@@ -140,7 +136,6 @@ export class MainHubLayout extends Phaser.GameObjects.Container {
   private tinhThachText!: Phaser.GameObjects.Text;
   private gioiThuyText!: Phaser.GameObjects.Text;
   private staminaText!: Phaser.GameObjects.Text;
-  private chatBody!: Phaser.GameObjects.Text;
   private heroSlot!: Phaser.GameObjects.Container;
   private toastText?: Phaser.GameObjects.Text;
   private mapButton?: Phaser.GameObjects.Container;
@@ -162,7 +157,7 @@ export class MainHubLayout extends Phaser.GameObjects.Container {
     scene.add.existing(this);
 
     this.buildTopBar();
-    this.buildChatPanel();
+    this.buildWorldLoreButton();
     this.buildRightColumn();
     this.buildBottomBar();
     this.buildHeroCenter();
@@ -339,29 +334,6 @@ export class MainHubLayout extends Phaser.GameObjects.Container {
 
     const topRightY = HUB_EDGE_MARGIN + BTN_RADIUS;
     const topRightStartX = GAME_WIDTH - HUB_RIGHT_MARGIN;
-    const topRightGap = BTN_GAP_TOP;
-    this.addSlotIconButton(
-      topRightStartX - topRightGap * 2,
-      topRightY,
-      BTN_RADIUS,
-      'hub_challenge',
-      'Thách Đấu',
-      () => {
-        soundManager.playUiClick();
-        this.callbacks.onChallenge();
-      },
-    );
-    this.addStaticIconButton(
-      topRightStartX - topRightGap,
-      topRightY,
-      BTN_RADIUS,
-      ASSET_KEYS.uiIconFriends,
-      'Bạn bè',
-      () => {
-        soundManager.playUiClick();
-        this.callbacks.onFriends();
-      },
-    );
     this.addIconRoundButton(topRightStartX, topRightY, BTN_RADIUS, 'settings', () => {
       soundManager.playUiClick();
       this.callbacks.onSettings();
@@ -414,69 +386,10 @@ export class MainHubLayout extends Phaser.GameObjects.Container {
     return x + 56;
   }
 
-  private buildChatPanel(): void {
-    const x = 16;
-    const y = 96;
-    const w = 292;
-    const h = 420;
-
-    const panel = this.scene.add.rectangle(x + w / 2, y + h / 2, w, h, 0x16213e, 0.92)
-      .setStrokeStyle(2, HUB_ORANGE, 0.85);
-    this.add(panel);
-
-    const tabW = w / 2 - 4;
-    const tabY = y + 14;
-    let activeTab: 'world' | 'friend' = 'world';
-
-    const worldTab = this.scene.add.rectangle(x + tabW / 2 + 4, tabY, tabW, 28, HUB_ORANGE, 0.35)
-      .setStrokeStyle(1, HUB_ORANGE);
-    const friendTab = this.scene.add.rectangle(x + tabW + tabW / 2 + 4, tabY, tabW, 28, 0x0f3460, 0.8)
-      .setStrokeStyle(1, HUB_ORANGE, 0.5);
-    const worldLabel = this.scene.add.text(x + tabW / 2 + 4, tabY, 'Chat thế giới', {
-      fontFamily: UI_THEME.fontFamily,
-      fontSize: clampFontSizePx('14px'),
-      color: UI_THEME.colors.text,
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
-    const friendLabel = this.scene.add.text(x + tabW + tabW / 2 + 4, tabY, 'Chat bạn bè', {
-      fontFamily: UI_THEME.fontFamily,
-      fontSize: clampFontSizePx('14px'),
-      color: UI_THEME.colors.textMuted,
-    }).setOrigin(0.5);
-
-    this.chatBody = this.scene.add.text(x + 14, y + 44, this.worldChatText(), {
-      fontFamily: UI_THEME.fontFamily,
-      fontSize: clampFontSizePx('13px'),
-      color: UI_THEME.colors.text,
-      wordWrap: { width: w - 28 },
-      lineSpacing: 6,
-    });
-
-    worldTab.setInteractive({ useHandCursor: true });
-    friendTab.setInteractive({ useHandCursor: true });
-    worldTab.on('pointerdown', () => {
-      if (activeTab === 'world') return;
-      activeTab = 'world';
-      worldTab.setFillStyle(HUB_ORANGE, 0.35);
-      friendTab.setFillStyle(0x0f3460, 0.8);
-      worldLabel.setColor(UI_THEME.colors.text).setFontStyle('bold');
-      friendLabel.setColor(UI_THEME.colors.textMuted).setFontStyle('normal');
-      this.chatBody.setText(this.worldChatText());
-    });
-    friendTab.on('pointerdown', () => {
-      if (activeTab === 'friend') return;
-      activeTab = 'friend';
-      friendTab.setFillStyle(HUB_ORANGE, 0.35);
-      worldTab.setFillStyle(0x0f3460, 0.8);
-      friendLabel.setColor(UI_THEME.colors.text).setFontStyle('bold');
-      worldLabel.setColor(UI_THEME.colors.textMuted).setFontStyle('normal');
-      this.chatBody.setText('Chưa có tin nhắn bạn bè.\nKết bạn để trò chuyện!');
-    });
-
-    this.add([worldTab, friendTab, worldLabel, friendLabel, this.chatBody]);
-
-    const loreBtnX = 32 + BTN_RADIUS;
-    const loreBtnY = y + h + 43;
+  /** Nút ? mở câu chuyện thế giới — góc trái dưới sảnh chính. */
+  private buildWorldLoreButton(): void {
+    const loreBtnX = 16 + BTN_RADIUS;
+    const loreBtnY = GAME_HEIGHT - 100;
     this.addWorldLoreHelpButton(loreBtnX, loreBtnY);
   }
 
@@ -522,14 +435,6 @@ export class MainHubLayout extends Phaser.GameObjects.Container {
     this.worldLoreModal = new WorldLoreModal(this.scene, () => {
       this.worldLoreModal = undefined;
     });
-  }
-
-  private worldChatText(): string {
-    return [
-      '[Hệ thống] Chào mừng đến Vô Địch Đạo Tâm!',
-      '[Lão Tu] Ai muốn luận võ Hoa Sơn?',
-      '[Tu sĩ] Tìm đội vượt ải chương 2.',
-    ].join('\n');
   }
 
   private buildRightColumn(): void {
@@ -899,22 +804,6 @@ export class MainHubLayout extends Phaser.GameObjects.Container {
     }
 
     return this.mountJadeHubButton(x, y, displayLabel, onClick);
-  }
-
-  /** Nút hub dùng PNG tùy chỉnh (màu gốc, không ADD). */
-  private addStaticIconButton(
-    x: number,
-    y: number,
-    _radius: number,
-    textureKey: string,
-    label: string,
-    onClick: () => void,
-    _large = false,
-  ): Phaser.GameObjects.Container {
-    if (!this.scene.textures.exists(textureKey)) {
-      return this.mountJadeHubButton(x, y, label, onClick);
-    }
-    return this.mountJadeHubButton(x, y, label, onClick, { textureKey, coloredIcon: true });
   }
 
   private addIconRoundButton(

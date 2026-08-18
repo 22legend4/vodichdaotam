@@ -24,9 +24,7 @@ const EXPECTED_HUB_MODALS = [
   'MeditationModal',
   'MapModal',
   'DailyRewardModal',
-  'ArenaModal',
-  'BloodyArenaModal',
-  'HoaSonLuanVoModal',
+  'EventsModal',
 ] as const;
 
 /** Luồng 1: Boot → Tạo NV → Tutorial → Sảnh chính. */
@@ -39,7 +37,7 @@ export const FLOW_NEW_PLAYER: readonly string[] = [
   'MainHubScene',
 ];
 
-/** Luồng 2: 10 modal sảnh chính. */
+/** Luồng 2: Modal sảnh chính (offline). */
 export const FLOW_HUB_MODALS = EXPECTED_HUB_MODALS;
 
 /** Luồng 3: Bản đồ → Chiến đấu → Phần thưởng. */
@@ -69,8 +67,8 @@ export function validateGameFlow(): FlowCheckResult[] {
   });
 
   results.push({
-    name: 'Hub modals (10)',
-    passed: EXPECTED_HUB_MODALS.length === 10,
+    name: 'Hub modals (offline)',
+    passed: EXPECTED_HUB_MODALS.length === 8,
     detail: EXPECTED_HUB_MODALS.join(', '),
   });
 

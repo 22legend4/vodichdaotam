@@ -26,9 +26,6 @@ export {
 export {
   ModalBase,
   DailyRewardModal,
-  ArenaModal,
-  BloodyArenaModal,
-  HoaSonLuanVoModal,
   CharacterModal,
   InventoryModal,
   MeditationModal,

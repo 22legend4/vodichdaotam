@@ -32,10 +32,6 @@ export const EVENT_ITEMS: ItemData[] = [
   },
 ];
 
-export const BLOODY_ARENA_PRIZE_TIER1 = ['eq_phaNhuocDao', 'eq_thietLangThuong', 'eq_mocLinhKiem', 'eq_thietChanTac'] as const;
-export const HOA_SON_PRIZE_TIER1 = ['beast_bachHau', 'beast_xichHuyetMa', 'beast_kimLong', 'beast_linhMieu'] as const;
-export const HOA_SON_PRIZE_TIER2 = ['beast_tieuLongNgu', 'beast_haoThienKhuyen', 'beast_diemPhuong', 'beast_diaNguu'] as const;
-
 /** Leo Tháp tầng 33 — chọn 1 trong 4 vũ khí kim cương. */
 export const LEO_THAP_FLOOR33_WEAPON_CHOICES = [
   'eq_hacLongPhaThienDao',

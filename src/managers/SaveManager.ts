@@ -1,13 +1,11 @@
 import { CharacterManager } from './CharacterManager.ts';
 import { InventoryManager } from './InventoryManager.ts';
 import { StaminaManager } from './StaminaManager.ts';
-import { TournamentManager } from './TournamentManager.ts';
 import { getItemById } from '../data/itemsData.ts';
 import type { CharacterMeta } from './CharacterManager.ts';
 import type { CharacterData } from '../types/game.ts';
 import type { InventorySlot } from './InventoryManager.ts';
 
-import type { TournamentSaveState } from './TournamentManager.ts';
 import type { CultivationSaveState } from './CultivationManager.ts';
 import type { DailyRewardSaveData } from './DailyRewardManager.ts';
 import type { LeoThapSaveState } from './LeoThapManager.ts';
@@ -62,7 +60,8 @@ export interface GameSaveData {
     lastUpdatedAt: number;
   };
   progress: StageProgress;
-  tournament?: TournamentSaveState;
+  /** @deprecated PvP offline — bỏ qua khi load save cũ. */
+  tournament?: unknown;
   /** ID hiển thị 5 chữ số trên sảnh chính. */
   playerDisplayId?: number;
   /** Tài khoản khách (Chơi Ngay). */
@@ -85,7 +84,6 @@ export class SaveManager {
     inventoryManager: InventoryManager,
     staminaManager: StaminaManager,
     progress: StageProgress,
-    tournamentManager?: TournamentManager,
     playerDisplayId?: number | null,
     guestAccountId?: string | null,
     redeemedGiftcodes?: string[],
@@ -109,7 +107,6 @@ export class SaveManager {
         ...progress,
         clearedStageIds: [...progress.clearedStageIds],
       },
-      tournament: tournamentManager?.exportState(),
       playerDisplayId: playerDisplayId ?? undefined,
       guestAccountId: guestAccountId ?? undefined,
       redeemedGiftcodes: redeemedGiftcodes?.length ? [...redeemedGiftcodes] : undefined,
@@ -171,7 +168,6 @@ export class SaveManager {
     characterManager: CharacterManager,
     inventoryManager: InventoryManager,
     staminaManager: StaminaManager,
-    tournamentManager?: TournamentManager,
   ): StageProgress {
     characterManager.importState({
       characters: saveData.characters,
@@ -183,10 +179,6 @@ export class SaveManager {
 
     inventoryManager.importState(saveData.inventory);
     staminaManager.importState(saveData.stamina);
-
-    if (tournamentManager && saveData.tournament) {
-      tournamentManager.importState(saveData.tournament);
-    }
 
     characterManager.syncPartyVitals(getItemById);
 
@@ -200,11 +192,10 @@ export class SaveManager {
     characterManager: CharacterManager,
     inventoryManager: InventoryManager,
     staminaManager: StaminaManager,
-    tournamentManager?: TournamentManager,
   ): StageProgress | null {
     const saveData = this.load();
     if (!saveData) return null;
-    return this.apply(saveData, characterManager, inventoryManager, staminaManager, tournamentManager);
+    return this.apply(saveData, characterManager, inventoryManager, staminaManager);
   }
 
   hasSave(): boolean {

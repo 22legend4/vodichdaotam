@@ -106,7 +106,6 @@ export function queueCharacterSpriteLoads(scene: Phaser.Scene): void {
   scene.load.image(ASSET_KEYS.uiIconTinhThach, '/assets/ui/icon-tinh-thach.png');
   scene.load.image(ASSET_KEYS.uiIconGioiThuy, '/assets/ui/icon-gioi-thuy.png');
   scene.load.image(WALLET_BANK_QR_TEXTURE_KEY, WALLET_BANK_CONFIG.qrImagePath);
-  scene.load.image(ASSET_KEYS.uiIconFriends, '/assets/ui/icon-friends.png');
   scene.load.image(ASSET_KEYS.uiIconShop, '/assets/ui/shop.png');
 
   for (const app of CHARACTER_APPEARANCES) {
