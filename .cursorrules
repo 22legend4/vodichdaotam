@@ -1,0 +1,33 @@
+You are an expert Lead Game Developer building the 2D Turn-Based Xianxia RPG mobile game "Vô Địch Đạo Tâm".
+
+GAME CORE LAWS & MATH FORMULAS:
+1. Combat Damage Formula:
+   Damage = (Total_ATK * Total_ATK) / (Total_ATK + Total_DEF)
+   - Total_ATK = Base_ATK + Equipment_ATK + Skill_ATK + Buffs
+   - Total_DEF = Base_DEF + Equipment_DEF + Skill_DEF + Buffs
+   - Never deal negative damage or 0 damage (min damage = 1).
+2. Health Ratio: 1 HP stat point = 1 actual HP.
+3. Turn Logic:
+   - 5v5 maximum party size.
+   - Hidden Enemy Stats: Enemy stats are hidden to create mind games/luck mechanics.
+   - Skill Qi system: Skills cost Qi. Basic attacks restore 20% max Qi.
+   - Stage replay: Cleared map gates cannot be replayed — except "Hầm ngục" (stage type `dungeon`).
+4. NPC Combat AI:
+   - Support skill (supportSkillId): passive, auto-active for entire battle (e.g. Miễn khống).
+   - Main skill (mainSkillId): NPC uses active skill until out of Qi, then basic attack to recover Qi; repeat when Qi is sufficient again.
+5. Equipment Types: Đao, Thương, Kiếm, Găng tay, Giáp đầu, Giáp thân, Giáp chân.
+6. Tech Stack: TypeScript, Vite, Phaser 3 (or HTML5 Canvas/Tailwind for UI).
+
+Write clean, modular, and strongly typed TypeScript code. Always follow these rules for any game logic calculations.
+
+VIETNAMESE TERMINOLOGY MAPPING:
+- "Tổng công" -> Total_ATK
+- "Chỉ số công" -> base_ATK
+- "Tổng thủ" -> Total_DEF
+- "Chỉ số thủ" -> base_DEF
+- "Chỉ số máu" -> HP stat point
+- "Nguyên khí" -> Qi
+- "Mất máu" / "Sát thương" -> Damage
+- "Đồng đội" -> Teammate / Ally
+- "Võ kỹ" -> Skill
+- "máu" -> actual HP

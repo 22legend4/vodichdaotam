@@ -1,0 +1,13 @@
+import Phaser from 'phaser';
+
+export const TELEPORT_GATE_ICON_KEYS = {
+  hoaTinhLinh: 'icon_hoa_tinh_linh',
+  huyetLongTri: 'icon_huyet_long_tri',
+  chuyenSinhDan: 'icon_chuyen_sinh_dan',
+} as const;
+
+export function queueTeleportGateIconLoads(scene: Phaser.Scene): void {
+  scene.load.image(TELEPORT_GATE_ICON_KEYS.hoaTinhLinh, '/assets/icons/hoa-tinh-linh.png');
+  scene.load.image(TELEPORT_GATE_ICON_KEYS.huyetLongTri, '/assets/icons/huyet-long-tri.png');
+  scene.load.image(TELEPORT_GATE_ICON_KEYS.chuyenSinhDan, '/assets/icons/chuyen-sinh-dan.png');
+}

@@ -1,0 +1,22 @@
+{
+  "name": "vodichdaotam-game",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "icons:scan": "node scripts/generateIconManifest.mjs",
+    "icons:prune": "node scripts/pruneUnusedIcons.mjs && node scripts/generateIconManifest.mjs",
+    "predev": "node scripts/generateIconManifest.mjs",
+    "prebuild": "node scripts/generateIconManifest.mjs",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "vite": "^8.2.0"
+  },
+  "dependencies": {
+    "phaser": "^4.2.1"
+  }
+}
