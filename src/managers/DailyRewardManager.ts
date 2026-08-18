@@ -97,12 +97,9 @@ export class DailyRewardManager {
     return DAILY_REWARDS;
   }
 
-  isDayClaimed(day: number, date = new Date()): boolean {
-    if (day < this.state.nextDay) return true;
-    if (day === this.state.nextDay && !this.canClaimToday(date) && this.state.lastClaimDate === this.getTodayKey(date)) {
-      return true;
-    }
-    return false;
+  /** Ngày đã nhận trong chu kỳ hiện tại (theo nextDay). */
+  isDayClaimed(day: number): boolean {
+    return day < this.state.nextDay;
   }
 
   canClaimDay(day: number, date = new Date()): boolean {

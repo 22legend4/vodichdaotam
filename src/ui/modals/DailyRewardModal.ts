@@ -203,15 +203,19 @@ export class DailyRewardModal extends ModalBase {
         this.container.add(tick);
       }
 
-      if (isNext || (!claimed && entry.day === state.nextDay)) {
+      if (isNext) {
         rect.setInteractive({ useHandCursor: true });
-        rect.on('pointerover', () => rect.setFillStyle(isNext ? 0x2563a8 : bgColor, 1));
+        rect.on('pointerover', () => rect.setFillStyle(0x2563a8, 1));
         rect.on('pointerout', () => rect.setFillStyle(bgColor, 0.95));
         rect.on('pointerdown', () => this.onDayClick(entry.day));
       } else if (!claimed) {
         rect.setInteractive({ useHandCursor: false });
         rect.on('pointerdown', () => {
-          if (entry.day > state.nextDay) this.showToast('Chưa tới ngày nhận quà này.');
+          if (entry.day > state.nextDay) {
+            this.showToast('Chưa tới ngày nhận quà này.');
+          } else if (entry.day === state.nextDay) {
+            this.showToast('Quay lại vào ngày mai để nhận quà tiếp theo.');
+          }
         });
       }
 

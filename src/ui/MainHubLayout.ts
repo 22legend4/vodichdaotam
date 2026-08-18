@@ -389,7 +389,7 @@ export class MainHubLayout extends Phaser.GameObjects.Container {
   /** Nút ? mở câu chuyện thế giới — góc trái dưới sảnh chính. */
   private buildWorldLoreButton(): void {
     const loreBtnX = 16 + BTN_RADIUS;
-    const loreBtnY = GAME_HEIGHT - 100;
+    const loreBtnY = GAME_HEIGHT - 150;
     this.addWorldLoreHelpButton(loreBtnX, loreBtnY);
   }
 
