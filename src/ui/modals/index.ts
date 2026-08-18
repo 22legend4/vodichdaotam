@@ -5,7 +5,6 @@ export { InventoryModal } from './InventoryModal.ts';
 export { MeditationModal } from './MeditationModal.ts';
 export { CraftingModal } from './CraftingModal.ts';
 export { ShopModal } from './ShopModal.ts';
-export { WalletModal } from './WalletModal.ts';
 export { MapModal } from './MapModal.ts';
 export { SettingsModal } from './SettingsModal.ts';
 export { PlayerRosterModal } from './PlayerRosterModal.ts';

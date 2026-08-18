@@ -33,13 +33,6 @@ export const CH9_TELEPORT_HUB_ID = 'ch9_cong_dich_chuyen';
 export const CH9_GIOI_TAM_HUB_ID = 'ch9_gioi_tam';
 export const CH9_GATE_9_ID = 'ch9_gate_9';
 
-export const HUYET_LONG_TRI_COST_VND = 1_000_000;
-
-export const HUYET_LONG_TRI_SKILL_NOTICE =
-  'Người chơi hãy sử dụng vật phẩm \'Phế võ\' mua trong cửa hàng để thu hồi các điểm võ kỹ '
-  + 'đã sử dụng. Người chơi sẽ có đủ 36 điểm võ kỹ để mua \'Tứ Phân Quy Nguyên Khí\'.';
-
-/** Tạm thời mở Cổng dịch chuyển + Giới Tâm để test — đặt false trước khi release. */
 export const DEV_UNLOCK_CH9_SPECIAL_HUBS = false;
 
 /**
@@ -86,7 +79,7 @@ export const CHAPTER_9_STAGES: MapStageNode[] = [
   }),
   stage9({
     id: CH9_GIOI_TAM_HUB_ID, name: 'Giới Tâm', order: 11, displayLabel: 'Giới Tâm',
-    gridX: 2, gridY: 2, prerequisites: [CH9_GATE_9_ID, CH9_TELEPORT_HUB_ID], isHub: true,
+    gridX: 2, gridY: 2, prerequisites: [CH9_GATE_9_ID], isHub: true,
     enemyWaves: waves(n('npc47', 5)),
     enemyNpcIds: n('npc47', 5),
     expReward: 0,

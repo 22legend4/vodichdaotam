@@ -6,7 +6,6 @@ import { DailyRewardManager } from '../managers/DailyRewardManager.ts';
 import { GiftcodeManager } from '../managers/GiftcodeManager.ts';
 import { LeoThapManager } from '../managers/LeoThapManager.ts';
 import { CultivationManager } from '../managers/CultivationManager.ts';
-import { WalletManager } from '../managers/WalletManager.ts';
 import { soundManager } from '../utils/SoundManager.ts';
 import { getItemById } from '../data/itemsData.ts';
 import { TUTORIAL_STAGE_ID, CH1_GATE_1_ID, isChapter1Complete, resolveActiveMapChapterId, getStageById, getChapterById } from '../data/chaptersData.ts';
@@ -29,7 +28,6 @@ export class GameState {
   readonly giftcodeManager = new GiftcodeManager();
   readonly leoThapManager = new LeoThapManager();
   readonly cultivationManager = new CultivationManager();
-  readonly walletManager = new WalletManager();
   readonly soundManager = soundManager;
   progress: StageProgress = { clearedStageIds: [] };
   playerDisplayId: number | null = null;
@@ -65,7 +63,6 @@ export class GameState {
       this.cultivationManager.importState(saveData.cultivation);
       this.dailyRewardManager.importState(saveData.dailyReward ?? this.loadLegacyDailyReward());
       this.leoThapManager.importState(saveData.leoThap);
-      this.walletManager.importState(saveData.wallet);
       if (this.guestAccountId && this.playerDisplayId) {
         saveGuestSession({
           guestAccountId: this.guestAccountId,
@@ -133,7 +130,6 @@ export class GameState {
       this.cultivationManager.exportState(),
       this.dailyRewardManager.exportState(),
       this.leoThapManager.exportState(),
-      this.walletManager.exportState(),
     );
   }
 
@@ -350,17 +346,13 @@ export class GameState {
     this.persist();
   }
 
-  isHuyetLongTriComplete(): boolean {
-    return this.progress.huyetLongTriComplete === true;
-  }
-
   isTeleportGateReincarnationUsed(): boolean {
     return this.progress.teleportGateReincarnationUsed === true;
   }
 
-  /** Đã chọn Huyết Long Trì hoặc Chuyển sinh tại cổng — cổng không còn hiện. */
+  /** Đã Chuyển sinh tại cổng — cổng không còn hiện. */
   isTeleportGateChoiceMade(): boolean {
-    return this.isHuyetLongTriComplete() || this.isTeleportGateReincarnationUsed();
+    return this.isTeleportGateReincarnationUsed();
   }
 
   /**
@@ -378,7 +370,6 @@ export class GameState {
       gate1BattleGuideDone: false,
       thienTaiUnlocked: false,
       dungeonFullClearCount: 0,
-      huyetLongTriComplete: false,
       skillEquipGuideDone: false,
       skillEquipGuideCharacterId: undefined,
       activeMapChapterId: 'chapter_1',
@@ -390,34 +381,5 @@ export class GameState {
       success: true,
       message: `${result.message} Cổng dịch chuyển đã đóng. Hãy vượt lại ải 9 để vào Giới Tâm.`,
     };
-  }
-
-  /** Huyết Long Trì — trừ 1 triệu đ, +3 điểm võ kỹ, mở võ kỹ chuyển sinh, vào Giới Tâm ngay. */
-  completeHuyetLongTriTraining(characterId: string): { success: boolean; message: string } {
-    if (this.progress.huyetLongTriComplete) {
-      return { success: false, message: 'Bạn đã tu luyện Huyết Long Trì rồi.' };
-    }
-
-    const cost = 1_000_000;
-    if (this.walletManager.getBalanceVnd() < cost) {
-      return {
-        success: false,
-        message: `Không đủ số dư ví (cần ${cost.toLocaleString('vi-VN')} đ).`,
-      };
-    }
-
-    const result = this.characterManager.completeHuyetLongTriTraining(characterId);
-    if (!result.success) return result;
-
-    const paid = this.walletManager.spendVnd(cost, 'huyet_long_tri', {
-      note: 'Tu luyện Huyết Long Trì',
-    });
-    if (!paid) {
-      return { success: false, message: 'Không thể trừ tiền ví.' };
-    }
-
-    this.progress = { ...this.progress, huyetLongTriComplete: true };
-    this.persist();
-    return result;
   }
 }

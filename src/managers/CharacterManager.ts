@@ -106,7 +106,7 @@ export interface CharacterMeta {
   learnedSkillIds: string[];
   /** 4 ô võ kỹ mang vào trận (null = trống). */
   battleSkillLoadout?: (string | null)[];
-  /** Đã mở nhánh võ kỹ chuyển sinh (Huyết Long Trì hoặc Chuyển sinh tại Cổng dịch chuyển). */
+  /** Đã mở nhánh võ kỹ chuyển sinh (Chuyển sinh tại Cổng dịch chuyển). */
   hasReincarnated?: boolean;
 }
 
@@ -603,26 +603,6 @@ export class CharacterManager {
     return {
       success: true,
       message: `${character.name} đã chuyển sinh — Luyện Thể, +3 điểm võ kỹ. Mở võ kỹ ẩn Tứ Phân Quy Nguyên Khí.`,
-    };
-  }
-
-  /** Huyết Long Trì — +3 điểm võ kỹ, mở nhánh võ kỹ chuyển sinh (không reset nhân vật). */
-  completeHuyetLongTriTraining(characterId: string): { success: boolean; message: string } {
-    const character = this.characters.get(characterId);
-    const characterMeta = this.meta.get(characterId);
-    if (!character || !characterMeta) {
-      return { success: false, message: 'Không tìm thấy nhân vật.' };
-    }
-    if (characterId !== this.mainCharacterId) {
-      return { success: false, message: 'Chỉ nhân vật chính mới tu luyện được tại Huyết Long Trì.' };
-    }
-
-    characterMeta.skillPoints += 3;
-    characterMeta.hasReincarnated = true;
-
-    return {
-      success: true,
-      message: `${character.name} hoàn thành tu luyện Huyết Long Trì — +3 điểm võ kỹ, mở võ kỹ ẩn Tứ Phân Quy Nguyên Khí.`,
     };
   }
 

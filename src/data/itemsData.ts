@@ -223,7 +223,7 @@ const MISC_DATA: ItemData[] = [
     ...Z,
     description: 'Tiền trong game.',
     value: 1,
-    priceType: 'realMoney',
+    priceType: 'tinhThach',
   },
   misc(
     'item_tichLichDan',

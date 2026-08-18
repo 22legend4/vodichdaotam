@@ -96,7 +96,7 @@ export const SKILLS_DATA: SkillData[] = [
   dmg('thuongVoDich', 'Thương Vô Địch', 'thuong', 150, 100, 11, 'lorc/spears.png'),
   def('kimCuongBatHoai', 'Kim Cương Bất Hoại', 150, 100, 11, 'lorc/shield-bounces.png'),
 
-  // --- Chuyển sinh (36 điểm, chỉ sau Huyết Long Trì hoặc Chuyển sinh tại Cổng dịch chuyển) ---
+  // --- Chuyển sinh (36 điểm, chỉ sau Chuyển sinh tại Cổng dịch chuyển) ---
   dmg('tuPhanQuyNguyenKhi', 'Tứ Phân Quy Nguyên Khí', 'chung', 333, 200, 36, 'lorc/black-hole-bolas.png'),
 ];
 
@@ -104,7 +104,7 @@ export const SKILLS_BY_ID: Record<string, SkillData> = Object.fromEntries(
   SKILLS_DATA.map((s) => [s.id, s]),
 );
 
-/** Võ kỹ chỉ hiện sau khi chuyển sinh hoặc tu luyện Huyết Long Trì tại Cổng dịch chuyển. */
+/** Võ kỹ chỉ hiện sau khi chuyển sinh tại Cổng dịch chuyển. */
 export const REBIRTH_SKILL_ID = 'tuPhanQuyNguyenKhi';
 
 export function getSkillById(id: string): SkillData | undefined {
@@ -146,7 +146,7 @@ export function canLearnSkill(
     return { ok: false, reason: 'Đã học võ kỹ này.' };
   }
   if (skill.id === REBIRTH_SKILL_ID && !hasReincarnated) {
-    return { ok: false, reason: 'Cần chuyển sinh hoặc tu luyện Huyết Long Trì tại Cổng dịch chuyển trước.' };
+    return { ok: false, reason: 'Cần chuyển sinh tại Cổng dịch chuyển trước.' };
   }
   if (availablePoints < skill.skillPointCost) {
     return { ok: false, reason: `Cần ${skill.skillPointCost} điểm võ kỹ.` };
@@ -213,7 +213,7 @@ export interface SkillTreeNode {
 }
 
 export interface SkillTreeOptions {
-  /** Đã mở nhánh võ kỹ chuyển sinh (Huyết Long Trì hoặc Chuyển sinh tại cổng). */
+  /** Đã mở nhánh võ kỹ chuyển sinh (Chuyển sinh tại cổng). */
   rebirthUnlocked?: boolean;
 }
 

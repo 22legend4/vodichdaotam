@@ -63,7 +63,7 @@ export interface SkillData {
 }
 
 export type ItemType = 'equipment' | 'medicine' | 'beast' | 'material' | 'currency';
-export type PriceType = 'tinhThach' | 'gioiThuy' | 'realMoney';
+export type PriceType = 'tinhThach' | 'gioiThuy';
 export type ItemRarity = 'dong' | 'bac' | 'vang' | 'kimcuong' | 'than';
 
 /** Tab phân loại trong túi đồ (ghi đè suy luận từ type). */

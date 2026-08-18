@@ -3,10 +3,8 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../../config/gameDimensions.ts';
 import { GameState } from '../../state/gameState.ts';
 import { getItemById } from '../../data/itemsData.ts';
 import { SHOP_ITEM_IDS } from '../../data/shopData.ts';
-import { TINH_THACH_PACKAGES, type TinhThachPackage } from '../../data/tinhThachShopData.ts';
 import type { ItemData } from '../../types/game.ts';
 import { ModalBase } from './ModalBase.ts';
-import { WalletModal } from './WalletModal.ts';
 import { UI_THEME, clampFontSizePx } from '../theme.ts';
 import { UIButton } from '../UIButton.ts';
 import { soundManager } from '../../utils/SoundManager.ts';
@@ -15,7 +13,6 @@ import { createItemIcon, applyIconCircleMask, usesHubUiItemIcon, createCurrencyU
 import { createItemRarityFrame } from '../itemRarityFrame.ts';
 import { matchesInventoryTab, type InventoryFilter } from '../../data/inventoryTabCategories.ts';
 import { formatItemDisplayDescription, formatEquipmentTypeLabel } from '../../utils/equipmentDisplay.ts';
-import { formatVnd } from '../../utils/formatVnd.ts';
 
 /** Panel trái giảm 10% so với 34% màn hình. */
 const LEFT_PANEL_W = Math.floor(GAME_WIDTH * 0.34 * 0.9);
@@ -31,13 +28,6 @@ const FILTER_IDLE = 0x252d52;
 const FILTER_ACTIVE = 0x3d4f8a;
 const FILTER_BORDER = 0xeab308;
 
-type ShopSection = 'items' | 'tinhThach';
-
-const SHOP_SECTION_TABS: { id: ShopSection; label: string }[] = [
-  { id: 'items', label: 'Vật phẩm' },
-  { id: 'tinhThach', label: 'Mua Tinh thạch' },
-];
-
 const SHOP_TABS: { id: InventoryFilter; label: string }[] = [
   { id: 'all', label: 'Tất cả' },
   { id: 'weapon', label: 'Trang bị' },
@@ -48,7 +38,6 @@ const SHOP_TABS: { id: InventoryFilter; label: string }[] = [
 ];
 
 const TITLE_Y = 32;
-const SECTION_TAB_Y = 76;
 const TAB_ROW_Y = 118;
 const TAB_H = 36;
 const TAB_GAP = 8;
@@ -118,15 +107,9 @@ function priceIconKind(item: ItemData): 'tinhThach' | 'gioiThuy' | null {
   return null;
 }
 
-function formatPackageLabel(pkg: TinhThachPackage): string {
-  return `${pkg.tinhThachAmount.toLocaleString('vi-VN')} Tinh thạch`;
-}
-
 export class ShopModal extends ModalBase {
-  private section: ShopSection = 'items';
   private filter: InventoryFilter = 'all';
   private selectedItemId: string | null = null;
-  private selectedPackageId: string | null = TINH_THACH_PACKAGES[0]?.id ?? null;
   private gridContainer!: Phaser.GameObjects.Container;
   private gridScrollRoot!: Phaser.GameObjects.Container;
   private gridScrollY = 0;
@@ -141,8 +124,6 @@ export class ShopModal extends ModalBase {
   private detailDesc!: Phaser.GameObjects.Text;
   private balanceWrap!: Phaser.GameObjects.Container;
   private buyButton?: UIButton;
-  private topUpButton?: UIButton;
-  private walletOverlay: WalletModal | null = null;
 
   constructor(scene: Phaser.Scene, onClose?: () => void) {
     super(scene, { title: '🏪 Cửa Hàng', fullscreen: true, onClose });
@@ -154,8 +135,6 @@ export class ShopModal extends ModalBase {
   }
 
   close(): void {
-    this.walletOverlay?.close();
-    this.walletOverlay = null;
     this.teardownGridScroll();
     super.close();
   }
@@ -211,17 +190,6 @@ export class ShopModal extends ModalBase {
       addToScene: false,
     });
 
-    this.topUpButton = new UIButton(this.scene, {
-      x: leftPanelCenterX(),
-      y: GAME_HEIGHT - 230,
-      width: 160,
-      height: 40,
-      label: 'Nạp tiền',
-      onClick: () => this.openWallet(),
-      addToScene: false,
-    });
-    this.topUpButton.setVisible(this.section === 'tinhThach');
-
     const closeBtn = new UIButton(this.scene, {
       x: leftPanelCenterX(),
       y: GAME_HEIGHT - 44,
@@ -262,8 +230,7 @@ export class ShopModal extends ModalBase {
       stroke: '#000000',
       strokeThickness: 3,
     }).setOrigin(0.5);
-    const sectionTabs = this.buildSectionTabs();
-    const filterTabs = this.section === 'items' ? this.buildFilterTabs() : [];
+    const filterTabs = this.buildFilterTabs();
     const headerDivider = this.scene.add.rectangle(
       GRID_AREA_X + GRID_AREA_W / 2,
       this.gridHeaderH - 1,
@@ -281,52 +248,15 @@ export class ShopModal extends ModalBase {
       headerBg,
       headerDivider,
       title,
-      ...sectionTabs,
       ...filterTabs,
       this.balanceWrap,
       this.detailName,
       this.detailType,
       this.detailIconWrap,
       this.detailDesc,
-      this.topUpButton,
       this.buyButton,
       closeBtn,
     ]);
-  }
-
-  private buildSectionTabs(): Phaser.GameObjects.GameObject[] {
-    const parts: Phaser.GameObjects.GameObject[] = [];
-    const tabCount = SHOP_SECTION_TABS.length;
-    const tabW = Math.floor((GRID_AREA_W - (tabCount - 1) * TAB_GAP - 32) / tabCount);
-    const startX = GRID_AREA_X + 16 + tabW / 2;
-
-    SHOP_SECTION_TABS.forEach((tab, i) => {
-      const x = startX + i * (tabW + TAB_GAP);
-      const active = this.section === tab.id;
-      const bg = this.scene.add.rectangle(x, SECTION_TAB_Y, tabW, TAB_H, active ? FILTER_ACTIVE : FILTER_IDLE, 1)
-        .setInteractive({ useHandCursor: true });
-      bg.setStrokeStyle(active ? 2 : 1, active ? FILTER_BORDER : SLOT_BORDER, active ? 1 : 0.55);
-
-      const label = this.scene.add.text(x, SECTION_TAB_Y, tab.label, {
-        fontFamily: UI_THEME.fontFamily,
-        fontSize: clampFontSizePx('14px'),
-        color: active ? TEXT_GOLD : UI_THEME.colors.text,
-        align: 'center',
-      }).setOrigin(0.5);
-
-      bg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-        pointer.event.stopPropagation();
-        if (this.section === tab.id) return;
-        soundManager.playUiClick();
-        this.section = tab.id;
-        this.gridScrollY = 0;
-        this.build();
-      });
-
-      parts.push(bg, label);
-    });
-
-    return parts;
   }
 
   private teardownGridScroll(): void {
@@ -377,9 +307,7 @@ export class ShopModal extends ModalBase {
   private gridHeaderH = TAB_ROW_Y + TAB_H / 2 + 18;
 
   private computeGridLayoutBounds(): void {
-    this.gridHeaderH = this.section === 'items'
-      ? TAB_ROW_Y + TAB_H / 2 + 18
-      : SECTION_TAB_Y + TAB_H / 2 + 18;
+    this.gridHeaderH = TAB_ROW_Y + TAB_H / 2 + 18;
     this.gridAreaTop = this.gridHeaderH;
   }
 
@@ -426,43 +354,25 @@ export class ShopModal extends ModalBase {
     this.balanceWrap.removeAll(true);
     const gs = GameState.getInstance();
     const parts: Phaser.GameObjects.GameObject[] = [];
-
-    if (this.section === 'tinhThach') {
-      parts.push(
-        this.scene.add.text(0, 0, `Số dư ví: ${formatVnd(gs.walletManager.getBalanceVnd())}`, {
-          fontFamily: UI_THEME.fontFamily,
-          fontSize: clampFontSizePx('16px'),
-          color: UI_THEME.colors.text,
-          fontStyle: 'bold',
-        }).setOrigin(0.5),
-      );
-    } else {
-      const tt = gs.inventoryManager.getTinhThach();
-      const ttIcon = createCurrencyUiIcon(this.scene, -36, 0, 'tinhThach', 22, 32);
-      if (ttIcon) {
-        ttIcon.setOrigin(1, 0.5);
-        parts.push(ttIcon);
-      }
-      parts.push(
-        this.scene.add.text(-28, 0, tt.toLocaleString('vi-VN'), {
-          fontFamily: UI_THEME.fontFamily,
-          fontSize: clampFontSizePx('16px'),
-          color: UI_THEME.colors.text,
-          fontStyle: 'bold',
-        }).setOrigin(0, 0.5),
-      );
+    const tt = gs.inventoryManager.getTinhThach();
+    const ttIcon = createCurrencyUiIcon(this.scene, -36, 0, 'tinhThach', 22, 32);
+    if (ttIcon) {
+      ttIcon.setOrigin(1, 0.5);
+      parts.push(ttIcon);
     }
-
+    parts.push(
+      this.scene.add.text(-28, 0, tt.toLocaleString('vi-VN'), {
+        fontFamily: UI_THEME.fontFamily,
+        fontSize: clampFontSizePx('16px'),
+        color: UI_THEME.colors.text,
+        fontStyle: 'bold',
+      }).setOrigin(0, 0.5),
+    );
     this.balanceWrap.add(parts);
   }
 
   private renderGrid(): void {
     this.gridContainer.removeAll(true);
-
-    if (this.section === 'tinhThach') {
-      this.renderTinhThachPackages();
-      return;
-    }
 
     const items = getFilteredShopItems(this.filter);
     const { cols, gridLeft, gridTop, gridContentH } = computeGridLayout(
@@ -556,73 +466,6 @@ export class ShopModal extends ModalBase {
     this.maxGridScroll = Math.max(0, this.gridContentH - (GRID_AREA_BOTTOM - this.gridAreaTop));
   }
 
-  private renderTinhThachPackages(): void {
-    const packages = [...TINH_THACH_PACKAGES];
-    const { cols, gridLeft, gridTop, gridContentH } = computeGridLayout(
-      packages.length,
-      this.gridAreaTop,
-      GRID_AREA_BOTTOM,
-    );
-    this.gridContentH = gridContentH;
-    this.gridContainer.y = Phaser.Math.Clamp(
-      this.gridScrollY,
-      -Math.max(0, gridContentH - (GRID_AREA_BOTTOM - this.gridAreaTop)),
-      0,
-    );
-
-    packages.forEach((pkg, i) => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const cellTop = gridTop + row * (CELL_H + SLOT_GAP);
-      const x = gridLeft + col * (SLOT_SIZE + SLOT_GAP) + SLOT_SIZE / 2;
-      const iconY = cellTop + SLOT_SIZE / 2;
-      const nameY = cellTop + SLOT_SIZE + NAME_GAP + NAME_ROW_H / 2;
-      const priceY = cellTop + SLOT_SIZE + NAME_GAP + NAME_ROW_H + PRICE_GAP + PRICE_ROW_H / 2;
-      const isSelected = this.selectedPackageId === pkg.id;
-
-      const cell = this.scene.add.rectangle(x, iconY, SLOT_SIZE, SLOT_SIZE, SLOT_BG, 1);
-      cell.setStrokeStyle(isSelected ? 3 : 2, isSelected ? SLOT_SELECTED : SLOT_BORDER, isSelected ? 1 : 0.65);
-      this.gridContainer.add(cell);
-
-      const iconSize = SLOT_SIZE - 14;
-      const ttIcon = createCurrencyUiIcon(this.scene, x, iconY, 'tinhThach', iconSize, iconSize);
-      if (ttIcon) {
-        this.gridContainer.add(ttIcon);
-      }
-
-      this.gridContainer.add(
-        this.scene.add.text(x, nameY, formatPackageLabel(pkg), {
-          fontFamily: UI_THEME.fontFamily,
-          fontSize: clampFontSizePx('12px'),
-          color: UI_THEME.colors.text,
-          align: 'center',
-          wordWrap: { width: SLOT_SIZE + 12 },
-        }).setOrigin(0.5),
-      );
-
-      this.gridContainer.add(
-        this.scene.add.text(x, priceY, formatVnd(pkg.priceVnd), {
-          fontFamily: UI_THEME.fontFamily,
-          fontSize: clampFontSizePx('13px'),
-          color: TEXT_GOLD,
-          fontStyle: 'bold',
-        }).setOrigin(0.5),
-      );
-
-      const hit = this.scene.add.zone(x, cellTop + CELL_H / 2, SLOT_SIZE + 12, CELL_H).setInteractive({ useHandCursor: true });
-      hit.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-        if (this.gridPanMoved || pointer.getDistance() > 10) return;
-        soundManager.playUiClick();
-        this.selectedPackageId = pkg.id;
-        this.renderGrid();
-        this.updateDetailPanel();
-      });
-      this.gridContainer.add(hit);
-    });
-
-    this.maxGridScroll = Math.max(0, this.gridContentH - (GRID_AREA_BOTTOM - this.gridAreaTop));
-  }
-
   private addPriceRow(cx: number, cy: number, item: ItemData): void {
     const iconSize = 16;
     const priceText = this.scene.add.text(0, 0, item.value.toLocaleString('vi-VN'), {
@@ -658,11 +501,6 @@ export class ShopModal extends ModalBase {
 
   private updateDetailPanel(): void {
     this.detailIconWrap.removeAll(true);
-
-    if (this.section === 'tinhThach') {
-      this.updateTinhThachDetail();
-      return;
-    }
 
     if (!this.selectedItemId) {
       this.detailName.setText('');
@@ -717,38 +555,7 @@ export class ShopModal extends ModalBase {
     }
   }
 
-  private updateTinhThachDetail(): void {
-    const pkg = TINH_THACH_PACKAGES.find((p) => p.id === this.selectedPackageId);
-    if (!pkg) {
-      this.detailName.setText('');
-      this.detailType.setText('');
-      this.detailDesc.setText('Chọn gói Tinh thạch.');
-      this.detailDesc.setColor(TEXT_MUTED);
-      this.buyButton?.setEnabled(false);
-      return;
-    }
-
-    this.detailName.setText('');
-    this.detailType.setText('Gói nạp');
-    this.detailDesc.setText(
-      `Thanh toán ${formatVnd(pkg.priceVnd)} từ ví.\nNhận ${pkg.tinhThachAmount.toLocaleString('vi-VN')} Tinh thạch vào tài khoản.`,
-    );
-    this.detailDesc.setColor(TEXT_DESC);
-    this.buyButton?.setEnabled(true);
-
-    const previewSize = 88;
-    const previewIcon = createCurrencyUiIcon(this.scene, 0, 0, 'tinhThach', previewSize, previewSize);
-    if (previewIcon) {
-      this.detailIconWrap.add(previewIcon);
-    }
-  }
-
   private purchaseSelected(): void {
-    if (this.section === 'tinhThach') {
-      this.purchaseTinhThachPackage();
-      return;
-    }
-
     if (!this.selectedItemId) return;
 
     const item = getItemById(this.selectedItemId);
@@ -778,36 +585,5 @@ export class ShopModal extends ModalBase {
     gs.persist();
     this.showToast(`Đã mua ${item.name}`);
     this.renderBalance();
-  }
-
-  private purchaseTinhThachPackage(): void {
-    if (!this.selectedPackageId) return;
-
-    const gs = GameState.getInstance();
-    const result = gs.walletManager.purchaseTinhThachPackage(
-      this.selectedPackageId,
-      gs.inventoryManager,
-    );
-
-    if (!result.success) {
-      this.showToast(result.message);
-      return;
-    }
-
-    soundManager.playItemPickup();
-    gs.persist();
-    this.showToast(result.message);
-    this.renderBalance();
-  }
-
-  private openWallet(): void {
-    soundManager.playUiClick();
-    if (this.walletOverlay) return;
-
-    this.walletOverlay = new WalletModal(this.scene, () => {
-      this.walletOverlay = null;
-      this.renderBalance();
-    });
-    this.walletOverlay.container.setDepth(UI_THEME.depth.overlay + 2);
   }
 }

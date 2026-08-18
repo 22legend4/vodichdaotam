@@ -5,7 +5,6 @@ import {
   type CharacterAppearanceDef,
 } from '../data/characterAppearances.ts';
 import { ASSET_KEYS } from './AssetGenerator.ts';
-import { WALLET_BANK_CONFIG, WALLET_BANK_QR_TEXTURE_KEY } from '../data/walletConfig.ts';
 
 /** Icon cửa ải trên bản đồ — lorc/sword-clash.png */
 export const MAP_STAGE_SWORD_ICON = 'icon_map_sword_clash';
@@ -105,7 +104,6 @@ export function queueCharacterSpriteLoads(scene: Phaser.Scene): void {
   scene.load.image(ASSET_KEYS.hubPlayerProfile, '/assets/ui/player-avatar.png');
   scene.load.image(ASSET_KEYS.uiIconTinhThach, '/assets/ui/icon-tinh-thach.png');
   scene.load.image(ASSET_KEYS.uiIconGioiThuy, '/assets/ui/icon-gioi-thuy.png');
-  scene.load.image(WALLET_BANK_QR_TEXTURE_KEY, WALLET_BANK_CONFIG.qrImagePath);
   scene.load.image(ASSET_KEYS.uiIconShop, '/assets/ui/shop.png');
 
   for (const app of CHARACTER_APPEARANCES) {

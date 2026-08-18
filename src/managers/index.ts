@@ -19,9 +19,6 @@ export type { InventorySlot, MedicineEffect, UseMedicineResult } from './Invento
 
 export { StaminaManager, STAMINA_PURCHASE_AMOUNT, STAMINA_PURCHASE_COST } from './StaminaManager.ts';
 
-export { WalletManager } from './WalletManager.ts';
-export type { WalletSaveState, WalletTransaction, PurchaseTinhThachResult } from './WalletManager.ts';
-
 export { SaveManager, SAVE_STORAGE_KEY, SAVE_VERSION } from './SaveManager.ts';
 export type { GameSaveData, StageProgress } from './SaveManager.ts';
 

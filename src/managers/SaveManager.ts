@@ -9,11 +9,10 @@ import type { InventorySlot } from './InventoryManager.ts';
 import type { CultivationSaveState } from './CultivationManager.ts';
 import type { DailyRewardSaveData } from './DailyRewardManager.ts';
 import type { LeoThapSaveState } from './LeoThapManager.ts';
-import type { WalletSaveState } from './WalletManager.ts';
 import { clearAllGameLocalData } from '../utils/guestSession.ts';
 
 export const SAVE_STORAGE_KEY = 'vodichdaotam_save';
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 /** Số lần tối đa hiện bảng giới thiệu võ kỹ — dùng chung toàn tài khoản (không theo từng nhân vật). */
 export const SKILL_INTRO_MAX_SHOWS = 5;
@@ -36,9 +35,7 @@ export interface StageProgress {
   skillEquipGuideCharacterId?: string;
   /** Chương bản đồ đang xem (theo tiến trình / lựa chọn). */
   activeMapChapterId?: string;
-  /** Đã tu luyện Huyết Long Trì (Cổng dịch chuyển — Chương 9). */
-  huyetLongTriComplete?: boolean;
-  /** Đã dùng Chuyển sinh đan tại Cổng dịch chuyển — cổng biến mất, Giới Tâm mở sau khi vượt lại ải 9. */
+  /** Đã dùng Chuyển sinh tại Cổng dịch chuyển — cổng biến mất. */
   teleportGateReincarnationUsed?: boolean;
 }
 
@@ -76,8 +73,17 @@ export interface GameSaveData {
   dailyReward?: DailyRewardSaveData;
   /** Event Leo Tháp — tham gia theo phiên Thứ 6. */
   leoThap?: LeoThapSaveState;
-  /** Ví nạp tiền (VND). */
-  wallet?: WalletSaveState;
+}
+
+function migrateLegacySave(data: GameSaveData & { wallet?: unknown }): GameSaveData {
+  const { wallet: _wallet, tournament: _tournament, ...rest } = data;
+  const progress = { ...(rest.progress ?? { clearedStageIds: [] }) };
+  delete (progress as { huyetLongTriComplete?: boolean }).huyetLongTriComplete;
+  return {
+    ...rest,
+    version: SAVE_VERSION,
+    progress,
+  };
 }
 
 export class SaveManager {
@@ -92,7 +98,6 @@ export class SaveManager {
     cultivation?: CultivationSaveState,
     dailyReward?: DailyRewardSaveData,
     leoThap?: LeoThapSaveState,
-    wallet?: WalletSaveState,
   ): GameSaveData {
     const characterState = characterManager.exportState();
     const saveData: GameSaveData = {
@@ -131,12 +136,6 @@ export class SaveManager {
             bestFloorBySession: { ...leoThap.bestFloorBySession },
           }
         : undefined,
-      wallet: wallet
-        ? {
-            balanceVnd: wallet.balanceVnd,
-            transactions: wallet.transactions.map((tx) => ({ ...tx })),
-          }
-        : undefined,
     };
 
     localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(saveData));
@@ -150,11 +149,11 @@ export class SaveManager {
     try {
       const data = JSON.parse(raw) as GameSaveData;
       if (!data) return null;
-      if (data.version === 1 || data.version === 2) {
-        return { ...data, version: SAVE_VERSION, wallet: { balanceVnd: 0, transactions: [] } };
+      if (data.version === 1 || data.version === 2 || data.version === 3) {
+        return migrateLegacySave(data as GameSaveData & { wallet?: unknown });
       }
-      if (data.version === 3) {
-        return { ...data, version: SAVE_VERSION, wallet: data.wallet ?? { balanceVnd: 0, transactions: [] } };
+      if (data.version >= 4 && data.version < SAVE_VERSION) {
+        return migrateLegacySave(data as GameSaveData & { wallet?: unknown });
       }
       if (data.version !== SAVE_VERSION) {
         return null;
