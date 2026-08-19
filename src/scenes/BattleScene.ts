@@ -3,7 +3,7 @@ import { GameState } from '../state/gameState.ts';
 import { getItemById } from '../data/itemsData.ts';
 import { getNpcById } from '../data/npcsData.ts';
 import { BANDIT_NPC_ID } from '../data/npcAppearances.ts';
-import { getDefeatSubtitleForStage, getStageById, getNextTrialStageIdInChain, isTrialChainBattleStage } from '../data/chaptersData.ts';
+import { getDefeatSubtitleForStage, getStageById, getNextTrialStageIdInChain, isTrialChainBattleStage, CH9_GIOI_TAM_HUB_ID } from '../data/chaptersData.ts';
 import type { MapStageNode } from '../types/game.ts';
 import { getSkillById } from '../data/skillsData.ts';
 import { TurnManager } from '../systems/TurnManager.ts';
@@ -31,6 +31,7 @@ import {
   UIButton,
   BattleVictoryOverlay,
   TrialSpoilsOverlay,
+  ThapTamChauAnnouncementOverlay,
 } from '../ui/index.ts';
 import { resolveAvatarKey, resolveItemIconKey, addSceneBackground, battleSlotPositions, type SceneBackgroundKey } from '../utils/AssetGenerator.ts';
 import { resolveSkillCastVisual, type SkillCastVisual } from '../utils/skillCastIcon.ts';
@@ -126,6 +127,7 @@ export class BattleScene extends Phaser.Scene {
   private isPlayingCombatAnim = false;
   private victoryOverlay?: BattleVictoryOverlay;
   private trialSpoilsOverlay?: TrialSpoilsOverlay;
+  private thapTamChauOverlay?: ThapTamChauAnnouncementOverlay;
   private battleGuideOverlay?: BattleGuideOverlay;
   private battleGuideStep: BattleGuideStep | 'done' | null = null;
   private guideLifted: Phaser.GameObjects.GameObject[] = [];
@@ -158,6 +160,8 @@ export class BattleScene extends Phaser.Scene {
     this.victoryOverlay = undefined;
     this.trialSpoilsOverlay?.destroy();
     this.trialSpoilsOverlay = undefined;
+    this.thapTamChauOverlay?.destroy();
+    this.thapTamChauOverlay = undefined;
     this.rewardChoiceOverlay?.destroy(true);
     this.rewardChoiceOverlay = undefined;
     this.battleGuideOverlay?.destroy();
@@ -1123,6 +1127,11 @@ export class BattleScene extends Phaser.Scene {
         projectileDepth += 1;
       }
     }
+    for (const intent of this.collectBasicAttackProjectileIntents(results)) {
+      if (this.launchBasicAttackProjectile(intent, projectileDepth)) {
+        projectileDepth += 1;
+      }
+    }
 
     for (const result of results) {
       if (!this.shouldPlayAttackAnim(result)) continue;
@@ -1178,7 +1187,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private getCommandProjectileTargets(cmd: CombatCommand): string[] {
-    if (cmd.type === 'attack' && cmd.targetId && cmd.targetId !== cmd.unitId) {
+    if (
+      (cmd.type === 'attack' || cmd.type === 'normalAttack')
+      && cmd.targetId
+      && cmd.targetId !== cmd.unitId
+    ) {
       return [cmd.targetId];
     }
     return [];
@@ -1220,6 +1233,76 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return intents;
+  }
+
+  private shouldLaunchBasicAttackProjectile(result: CombatActionResult): boolean {
+    if (result.blocked) return false;
+    if (result.actionType === 'defense') return false;
+    if (result.actionType === 'normalAttack') {
+      return Boolean(result.targetId && result.targetId !== result.actorId);
+    }
+    if (result.isNormalAttackFallback) {
+      return Boolean(result.targetId && result.targetId !== result.actorId);
+    }
+    return false;
+  }
+
+  private shouldLaunchBasicAttackFromCommand(cmd: CombatCommand): boolean {
+    if (cmd.type !== 'normalAttack') return false;
+    return Boolean(cmd.targetId && cmd.targetId !== cmd.unitId);
+  }
+
+  /** Đánh thường — quả cầu sáng (player chọn / NPC / fallback hết Qi). */
+  private collectBasicAttackProjectileIntents(
+    results: CombatActionResult[],
+  ): { actorId: string; targetIds: string[] }[] {
+    const intents: { actorId: string; targetIds: string[] }[] = [];
+    const seenActors = new Set<string>();
+
+    for (const cmd of this.turnManager.getSubmittedCommands()) {
+      if (!this.allyIds.includes(cmd.unitId)) continue;
+      if (!this.shouldLaunchBasicAttackFromCommand(cmd)) continue;
+      const targetIds = this.getCommandProjectileTargets(cmd);
+      if (targetIds.length === 0) continue;
+      intents.push({
+        actorId: cmd.unitId,
+        targetIds,
+      });
+      seenActors.add(cmd.unitId);
+    }
+
+    for (const result of results) {
+      if (seenActors.has(result.actorId)) continue;
+      if (!this.shouldLaunchBasicAttackProjectile(result)) continue;
+      const targetIds = this.getResultProjectileTargets(result);
+      if (targetIds.length === 0) continue;
+      intents.push({ actorId: result.actorId, targetIds });
+      seenActors.add(result.actorId);
+    }
+
+    return intents;
+  }
+
+  private launchBasicAttackProjectile(
+    intent: { actorId: string; targetIds: string[] },
+    depthOffset: number,
+  ): boolean {
+    const actorDisplay = this.unitDisplays.get(intent.actorId);
+    if (!actorDisplay) return false;
+
+    let launched = false;
+    let subIndex = 0;
+    for (const targetId of intent.targetIds) {
+      const targetDisplay = this.unitDisplays.get(targetId);
+      if (!targetDisplay) continue;
+      actorDisplay.launchBasicAttackProjectileTo(
+        targetDisplay,
+        { depthOffset: depthOffset + subIndex },
+      );
+      subIndex += 1;
+      launched = true;
+    }
+    return launched;
   }
 
   private getActorWeaponType(actorId: string): WeaponType | undefined {
@@ -1523,6 +1606,15 @@ export class BattleScene extends Phaser.Scene {
         TutorialBattleScene.handleTutorialVictory(this);
         return;
       }
+      if (this.sceneData.stageId === CH9_GIOI_TAM_HUB_ID) {
+        this.showThapTamChauAnnouncement(() => {
+          this.sceneData.onVictory?.();
+          if (!this.sceneData.onVictory) {
+            this.exitAfterBattle();
+          }
+        });
+        return;
+      }
       this.sceneData.onVictory?.();
       if (!this.sceneData.onVictory) {
         this.exitAfterBattle();
@@ -1777,6 +1869,11 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  private showThapTamChauAnnouncement(onDone: () => void): void {
+    this.thapTamChauOverlay?.destroy();
+    this.thapTamChauOverlay = new ThapTamChauAnnouncementOverlay(this, { onDone });
+  }
+
   private recordTrialRunReward(options?: { skipItemRewards?: boolean }): void {
     const stageId = this.sceneData.stageId;
     if (!stageId || !isTrialChainBattleStage(stageId) || isLeoThapStage(stageId)) return;
@@ -2005,6 +2102,8 @@ export class BattleScene extends Phaser.Scene {
   shutdown(): void {
     this.timerEvent?.destroy();
     this.victoryOverlay?.destroy();
+    this.trialSpoilsOverlay?.destroy();
+    this.thapTamChauOverlay?.destroy();
     this.battleGuideOverlay?.destroy();
     this.tutorialCenterHint?.destroy();
     this.commandMenu?.destroy();

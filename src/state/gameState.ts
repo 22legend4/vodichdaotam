@@ -356,7 +356,7 @@ export class GameState {
   }
 
   /**
-   * Chuyển sinh tại Cổng dịch chuyển — áp dụng ngay (chỉ có duy nhất tại cổng), cổng biến mất;
+   * Chuyển sinh tại Chuyển sinh (Ch.9) — áp dụng ngay, hub biến mất;
    * sau khi vượt lại ải 9 chương 9 mới vào được Giới Tâm.
    */
   applyTeleportGateReincarnation(characterId: string): { success: boolean; message: string } {
@@ -379,7 +379,7 @@ export class GameState {
     this.persist();
     return {
       success: true,
-      message: `${result.message} Cổng dịch chuyển đã đóng. Hãy vượt lại ải 9 để vào Giới Tâm.`,
+      message: `${result.message} Hãy vượt lại ải 9 chương 9 để vào Giới Tâm.`,
     };
   }
 }

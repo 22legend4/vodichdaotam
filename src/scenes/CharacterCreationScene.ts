@@ -422,7 +422,6 @@ export class CharacterCreationScene extends Phaser.Scene {
         });
         gs.assignPlayerDisplayId();
         gs.syncPartyVitals();
-        gs.inventoryManager.addTinhThach(100);
         gs.persist();
       }
 

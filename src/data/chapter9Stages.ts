@@ -27,18 +27,19 @@ const GIOI_TAM_REWARDS: StageItemReward[] = [
   { itemId: 'eq_honNguyenThauThienNgoa', quantity: 1 },
 ];
 
-/** Hub bản đồ — Cổng dịch chuyển (giữa trái). */
+/** Hub bản đồ — Chuyển sinh (giữa trái). */
 export const CH9_TELEPORT_HUB_ID = 'ch9_cong_dich_chuyen';
 /** Hub bản đồ — Giới Tâm (giữa). */
 export const CH9_GIOI_TAM_HUB_ID = 'ch9_gioi_tam';
 export const CH9_GATE_9_ID = 'ch9_gate_9';
 
+/** Tạm thời mở Chuyển sinh + Giới Tâm để test — đặt false trước khi release. */
 export const DEV_UNLOCK_CH9_SPECIAL_HUBS = false;
 
 /**
  * Bố cục bản đồ Chương 9 (theo sơ đồ):
  * Hàng trên: 1 — 2 — 3 — 4 — 5
- * Hàng giữa: Cổng dịch chuyển — Giới Tâm — 6
+ * Hàng giữa: Chuyển sinh — Giới Tâm — 6
  * Hàng dưới: 9 — 8 — 7
  */
 export const CHAPTER_9_STAGES: MapStageNode[] = [
@@ -73,7 +74,7 @@ export const CHAPTER_9_STAGES: MapStageNode[] = [
     enemyNpcIds: n('npc21', 5), expReward: 1_000_000, itemRewards: GIOI_THUY,
   }),
   stage9({
-    id: CH9_TELEPORT_HUB_ID, name: 'Cổng dịch chuyển', order: 10, displayLabel: 'Cổng dịch chuyển',
+    id: CH9_TELEPORT_HUB_ID, name: 'Chuyển sinh', order: 10, displayLabel: 'Chuyển sinh',
     gridX: 0, gridY: 2, prerequisites: [CH9_GATE_9_ID], isHub: true,
     enemyNpcIds: [], expReward: 0,
   }),

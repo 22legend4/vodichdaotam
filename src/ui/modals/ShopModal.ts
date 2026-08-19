@@ -30,10 +30,7 @@ const FILTER_BORDER = 0xeab308;
 
 const SHOP_TABS: { id: InventoryFilter; label: string }[] = [
   { id: 'all', label: 'Tất cả' },
-  { id: 'weapon', label: 'Trang bị' },
   { id: 'medicine', label: 'Dược' },
-  { id: 'shard', label: 'Mảnh' },
-  { id: 'beast', label: 'Yêu thú' },
   { id: 'other', label: 'Khác' },
 ];
 

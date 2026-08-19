@@ -6,7 +6,7 @@ import { ModalBase } from './ModalBase.ts';
 import { getItemById } from '../../data/itemsData.ts';
 import type { RewardGrant } from '../../managers/DailyRewardManager.ts';
 import { ASSET_KEYS, resolveItemIconKey } from '../../utils/AssetGenerator.ts';
-import { createItemIcon, createCurrencyUiIcon } from '../../utils/iconAssets.ts';
+import { createItemIcon, createCurrencyUiIcon, itemIconTextureKey } from '../../utils/iconAssets.ts';
 import { soundManager } from '../../utils/SoundManager.ts';
 
 const GRID_COLS = 5;
@@ -40,8 +40,23 @@ function grantIconKey(scene: Phaser.Scene, grant: RewardGrant): string | null {
   if (grant.kind === 'gioiThuy') {
     return scene.textures.exists(ASSET_KEYS.uiIconGioiThuy) ? ASSET_KEYS.uiIconGioiThuy : null;
   }
-  if (grant.kind === 'item') return resolveItemIconKey(grant.itemId);
-  return resolveItemIconKey('item_nhanKhongGian');
+  if (grant.kind === 'item') {
+    const item = getItemById(grant.itemId);
+    if (item) {
+      const pathKey = itemIconTextureKey(item);
+      if (pathKey && scene.textures.exists(pathKey)) return pathKey;
+      if (item.type === 'equipment' && item.rarity) {
+        const slot = item.slot ?? 'weapon';
+        const weapon = item.slot === 'weapon' ? (item.weaponType ?? 'none') : 'none';
+        const eqKey = ASSET_KEYS.eqIcon(slot, weapon, item.rarity);
+        if (scene.textures.exists(eqKey)) return eqKey;
+      }
+    }
+    const legacy = resolveItemIconKey(grant.itemId);
+    return legacy && scene.textures.exists(legacy) ? legacy : null;
+  }
+  const fallback = resolveItemIconKey('item_nhanKhongGian');
+  return fallback && scene.textures.exists(fallback) ? fallback : null;
 }
 
 function grantStackAmount(grant: RewardGrant): number | null {
@@ -258,16 +273,8 @@ export class DailyRewardModal extends ModalBase {
 
     grants.forEach((grant, i) => {
       const y = GAME_HEIGHT / 2 - panelH / 2 + 88 + i * 72;
-      const iconKey = grantIconKey(this.scene, grant);
-      if (iconKey && this.scene.textures.exists(iconKey)) {
-        overlay.add(
-          this.scene.add.image(GAME_WIDTH / 2 - 170, y, iconKey).setDisplaySize(44, 44),
-        );
-      } else {
-        overlay.add(
-          this.scene.add.rectangle(GAME_WIDTH / 2 - 170, y, 44, 44, 0x2980b9, 0.6),
-        );
-      }
+      const iconParts = addGrantIcon(this.scene, grant, GAME_WIDTH / 2 - 170, y, 44);
+      overlay.add(iconParts);
 
       overlay.add(
         this.scene.add.text(GAME_WIDTH / 2 - 130, y - 14, grantDisplayName(grant), {

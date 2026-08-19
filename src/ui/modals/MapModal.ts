@@ -676,6 +676,7 @@ export class MapModal extends ModalBase {
             gs.progress.clearedStageIds,
             gs.isTutorialComplete(),
             gs.inventoryManager.getTinhThach(),
+            gs.isTeleportGateReincarnationUsed(),
           );
           this.showToast(reason || 'Cửa ải chưa mở khóa');
           return;
@@ -691,7 +692,7 @@ export class MapModal extends ModalBase {
         if (node.id === CH9_TELEPORT_HUB_ID) {
           const gsHub = GameState.getInstance();
           if (gsHub.isTeleportGateChoiceMade()) {
-            this.showToast('Bạn đã hoàn thành lựa chọn tại Cổng dịch chuyển.');
+            this.showToast('Bạn đã Chuyển sinh rồi.');
             return;
           }
           const cleared = gsHub.progress.clearedStageIds;
@@ -719,6 +720,7 @@ export class MapModal extends ModalBase {
         const gs = GameState.getInstance();
         const reason = getStageLockReason(
           node, gs.progress.clearedStageIds, gs.isTutorialComplete(), gs.inventoryManager.getTinhThach(),
+          gs.isTeleportGateReincarnationUsed(),
         );
         this.showToast(reason || 'Cửa ải chưa mở khóa');
       });
@@ -743,6 +745,7 @@ export class MapModal extends ModalBase {
       const gs = GameState.getInstance();
       const reason = getStageLockReason(
         node, gs.progress.clearedStageIds, gs.isTutorialComplete(), gs.inventoryManager.getTinhThach(),
+        gs.isTeleportGateReincarnationUsed(),
       );
       this.showToast(reason || 'Cửa ải chưa mở khóa');
       return;

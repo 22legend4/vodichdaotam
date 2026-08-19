@@ -11,6 +11,7 @@ export { CountdownTimer } from './CountdownTimer.ts';
 export { FloatingCombatText } from './FloatingCombatText.ts';
 export { BattleVictoryOverlay } from './BattleVictoryOverlay.ts';
 export { TrialSpoilsOverlay } from './TrialSpoilsOverlay.ts';
+export { ThapTamChauAnnouncementOverlay } from './ThapTamChauAnnouncementOverlay.ts';
 export { MainHubLayout } from './MainHubLayout.ts';
 export type { MainHubLayoutCallbacks } from './MainHubLayout.ts';
 export { StatAllocationPanel } from './StatAllocationPanel.ts';

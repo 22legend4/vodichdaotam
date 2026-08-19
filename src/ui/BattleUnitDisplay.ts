@@ -10,6 +10,7 @@ import {
   createSkillCastIcon,
   type SkillCastVisual,
 } from '../utils/skillCastIcon.ts';
+import { createBasicAttackOrb, showBasicAttackImpactFx } from '../utils/basicAttackFx.ts';
 import { AVATAR_W, AVATAR_H } from '../utils/assetDrawCharacters.ts';
 import { getSkillById } from '../data/skillsData.ts';
 import { createSkillIcon } from '../utils/skillIconAssets.ts';
@@ -262,6 +263,68 @@ export class BattleUnitDisplay extends Phaser.GameObjects.Container {
     this.scene.time.delayedCall(COMBAT_SKILL_MANIFEST_MS, () => {
       manifest.destroy();
       this.flySkillCastIconTo(target, visual, depth, onImpact);
+    });
+  }
+
+  /** Đánh thường — 3 pha: xuất hiện → bay → nổ (cùng timing võ kỹ). */
+  launchBasicAttackProjectileTo(
+    target: BattleUnitDisplay,
+    options?: { depthOffset?: number },
+    onImpact?: () => void,
+  ): void {
+    const depth = UI_THEME.depth.units + 8 + (options?.depthOffset ?? 0);
+    const manifest = createBasicAttackOrb(this.scene);
+    manifest.setPosition(0, -12);
+    manifest.setAlpha(0);
+    manifest.setDepth(depth);
+    this.add(manifest);
+    this.bringToTop(manifest);
+
+    this.scene.tweens.add({
+      targets: manifest,
+      alpha: 1,
+      duration: COMBAT_SKILL_MANIFEST_MS,
+      ease: 'Cubic.easeOut',
+    });
+
+    this.scene.time.delayedCall(COMBAT_SKILL_MANIFEST_MS, () => {
+      manifest.destroy();
+      this.flyBasicAttackOrbTo(target, depth, onImpact);
+    });
+  }
+
+  private flyBasicAttackOrbTo(
+    target: BattleUnitDisplay,
+    depth: number,
+    onImpact?: () => void,
+  ): void {
+    const from = this.getBodyCenterWorld();
+    const to = target.getBodyCenterWorld();
+    const midX = (from.x + to.x) / 2;
+    const midY = Math.min(from.y, to.y) - 48;
+
+    const projectile = createBasicAttackOrb(this.scene);
+    projectile.setPosition(from.x, from.y);
+    projectile.setDepth(depth);
+    projectile.setAlpha(0.95);
+
+    this.scene.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: COMBAT_SKILL_TRAVEL_MS,
+      ease: 'Cubic.easeIn',
+      onUpdate: (tw) => {
+        const tVal = tw.getValue() ?? 0;
+        const u = 1 - tVal;
+        projectile.x = u * u * from.x + 2 * u * tVal * midX + tVal * tVal * to.x;
+        projectile.y = u * u * from.y + 2 * u * tVal * midY + tVal * tVal * to.y;
+        projectile.setScale(1 + tVal * 0.06);
+      },
+      onComplete: () => {
+        projectile.destroy();
+        showBasicAttackImpactFx(this.scene, target, COMBAT_SKILL_IMPACT_MS);
+        onImpact?.();
+      },
     });
   }
 

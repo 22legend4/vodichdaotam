@@ -8,21 +8,17 @@ import { ModalBase } from './ModalBase.ts';
 import { UI_THEME, clampFontSizePx } from '../theme.ts';
 import { UIButton } from '../UIButton.ts';
 
-const HOAT_TINH_LINH_INTRO =
-  'Hỏa Tinh Linh: "Tu sĩ, đây là cơ duyên Chuyển sinh duy nhất tại Cổng dịch chuyển."';
-
 const CHUYEN_SINH_DESC =
-  'Chuyển sinh duy nhất một lần tại Cổng dịch chuyển.\n'
-  + 'Reset nhân vật về level 1, chơi lại từ ải 1 chương 1. Giữ lại toàn bộ túi đồ.\n'
+  'Chuyển sinh duy nhất một lần tại đây.\n'
+  + 'Reset nhân vật, chơi lại từ ải 1 chương 1. Giữ lại toàn bộ túi đồ.\n'
   + 'Các nhân vật đồng đội không còn (thu thập đồng đội ở chương 1, như người chơi mới). '
   + 'Nhân vật chính trở về cảnh giới Luyện Thể, được tặng 3 điểm võ kỹ, '
   + 'mở ra võ kỹ ẩn \'Tứ Phân Quy Nguyên Khí\'.\n\n'
-  + 'Cổng dịch chuyển sẽ biến mất. Nếu không chuyển sinh, bạn vẫn vào Giới Tâm sau khi vượt ải 9. '
-  + 'Sau chuyển sinh, phải vượt lại ải 9 chương 9 mới vào được Giới Tâm.';
+  + 'Chỉ sau khi Chuyển sinh và vượt lại ải 9 chương 9 mới vào được Giới Tâm.';
 
 export interface TeleportGateModalOptions {
   onClose?: () => void;
-  /** Sau Chuyển sinh tại cổng — đóng bản đồ, reset về chương 1. */
+  /** Sau Chuyển sinh — đóng bản đồ, reset về chương 1. */
   onTeleportGateReincarnationComplete: () => void;
 }
 
@@ -46,7 +42,7 @@ export class TeleportGateModal extends ModalBase {
     this.addBackground();
 
     this.container.add(
-      this.scene.add.text(GAME_WIDTH / 2, 44, 'Cổng dịch chuyển', {
+      this.scene.add.text(GAME_WIDTH / 2, 52, 'Chuyển sinh', {
         fontFamily: UI_THEME.fontFamilyTitle,
         fontSize: clampFontSizePx('28px'),
         color: UI_THEME.colors.accentAlt,
@@ -56,18 +52,6 @@ export class TeleportGateModal extends ModalBase {
       }).setOrigin(0.5),
     );
 
-    this.container.add(
-      this.scene.add.text(GAME_WIDTH / 2, 88, HOAT_TINH_LINH_INTRO, {
-        fontFamily: UI_THEME.fontFamily,
-        fontSize: clampFontSizePx('14px'),
-        color: '#ffd600',
-        align: 'center',
-        wordWrap: { width: GAME_WIDTH - 80 },
-        lineSpacing: 6,
-      }).setOrigin(0.5, 0),
-    );
-
-    this.addCenterSpirit();
     this.addChuyenSinhPanel();
 
     const backBtn = new UIButton(this.scene, {
@@ -91,42 +75,28 @@ export class TeleportGateModal extends ModalBase {
     this.container.addAt(bg, 0);
   }
 
-  private addCenterSpirit(): void {
-    const cx = GAME_WIDTH / 2;
-    const cy = 220;
-    this.container.add(
-      this.scene.add.text(cx, cy - 88, 'Hỏa Tinh Linh', {
-        fontFamily: UI_THEME.fontFamilyTitle,
-        fontSize: clampFontSizePx('20px'),
-        color: '#ffd600',
-        fontStyle: 'bold',
-      }).setOrigin(0.5),
-    );
-    this.addIcon(cx, cy, TELEPORT_GATE_ICON_KEYS.hoaTinhLinh, 120, true);
-  }
-
   private addChuyenSinhPanel(): void {
     const cx = GAME_WIDTH / 2;
-    const iconY = 360;
+    const iconY = 240;
     this.container.add(
       this.scene.add.text(cx, iconY - 88, 'Chuyển sinh đan', {
         fontFamily: UI_THEME.fontFamilyTitle,
-        fontSize: clampFontSizePx('20px'),
+        fontSize: clampFontSizePx('22px'),
         color: '#7ec8ff',
         fontStyle: 'bold',
       }).setOrigin(0.5),
     );
 
-    this.addIcon(cx, iconY, TELEPORT_GATE_ICON_KEYS.chuyenSinhDan, 100, true);
+    this.addIcon(cx, iconY, TELEPORT_GATE_ICON_KEYS.chuyenSinhDan, 120, true);
 
     this.container.add(
-      this.scene.add.text(cx, 430, CHUYEN_SINH_DESC, {
+      this.scene.add.text(cx, 320, CHUYEN_SINH_DESC, {
         fontFamily: UI_THEME.fontFamily,
-        fontSize: clampFontSizePx('13px'),
+        fontSize: clampFontSizePx('14px'),
         color: '#ffffff',
         align: 'center',
-        wordWrap: { width: 520 },
-        lineSpacing: 5,
+        wordWrap: { width: 540 },
+        lineSpacing: 6,
       }).setOrigin(0.5, 0),
     );
 
@@ -141,7 +111,7 @@ export class TeleportGateModal extends ModalBase {
       flatBackground: true,
       onClick: () => {
         if (alreadyUsed) {
-          this.showToast('Bạn đã chuyển sinh tại Cổng dịch chuyển rồi.');
+          this.showToast('Bạn đã Chuyển sinh rồi.');
           return;
         }
         this.confirmChuyenSinh();
@@ -176,11 +146,7 @@ export class TeleportGateModal extends ModalBase {
       return;
     }
 
-    this.showConfirm(
-      'Xác nhận Chuyển sinh',
-      CHUYEN_SINH_DESC + '\n\nHành động này không thể hoàn tác.',
-      () => this.applyTeleportGateReincarnation(mc.id),
-    );
+    this.showConfirm(() => this.applyTeleportGateReincarnation(mc.id));
   }
 
   private applyTeleportGateReincarnation(characterId: string): void {
@@ -196,7 +162,7 @@ export class TeleportGateModal extends ModalBase {
     this.onTeleportGateReincarnationComplete();
   }
 
-  private showConfirm(title: string, body: string, onConfirm: () => void): void {
+  private showConfirm(onConfirm: () => void): void {
     this.confirmOverlay?.destroy(true);
     const overlay = this.scene.add.container(0, 0).setDepth(UI_THEME.depth.overlay + 50);
 
@@ -205,30 +171,18 @@ export class TeleportGateModal extends ModalBase {
     );
 
     overlay.add(
-      this.scene.add.text(GAME_WIDTH / 2, 140, title, {
+      this.scene.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 48, 'Xác nhận Chuyển sinh?', {
         fontFamily: UI_THEME.fontFamilyTitle,
-        fontSize: clampFontSizePx('22px'),
+        fontSize: clampFontSizePx('24px'),
         color: UI_THEME.colors.accentAlt,
         fontStyle: 'bold',
         align: 'center',
-        wordWrap: { width: GAME_WIDTH - 80 },
-      }).setOrigin(0.5, 0),
-    );
-
-    overlay.add(
-      this.scene.add.text(GAME_WIDTH / 2, 200, body, {
-        fontFamily: UI_THEME.fontFamily,
-        fontSize: clampFontSizePx('15px'),
-        color: '#ffffff',
-        align: 'center',
-        wordWrap: { width: GAME_WIDTH - 100 },
-        lineSpacing: 6,
-      }).setOrigin(0.5, 0),
+      }).setOrigin(0.5),
     );
 
     const confirmBtn = new UIButton(this.scene, {
       x: GAME_WIDTH / 2 - 110,
-      y: GAME_HEIGHT - 120,
+      y: GAME_HEIGHT / 2 + 24,
       width: 160,
       height: 44,
       label: 'Xác nhận',
@@ -244,7 +198,7 @@ export class TeleportGateModal extends ModalBase {
 
     const cancelBtn = new UIButton(this.scene, {
       x: GAME_WIDTH / 2 + 110,
-      y: GAME_HEIGHT - 120,
+      y: GAME_HEIGHT / 2 + 24,
       width: 160,
       height: 44,
       label: 'Hủy',
