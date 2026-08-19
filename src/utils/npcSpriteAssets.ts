@@ -2,9 +2,10 @@ import type Phaser from 'phaser';
 import { ASSET_KEYS } from './AssetGenerator.ts';
 import { NPC_APPEARANCES } from '../data/npcAppearances.ts';
 import { NPC_MAX_INDEX } from '../data/npcsData.ts';
+import { publicAssetUrl } from './publicAssetUrl.ts';
 
 /** Ảnh sư phụ — nửa người, dùng chung cho Nam/Nữ. */
-export const MASTER_PORTRAIT_FILE = '/assets/npcs/su-phu-nua-nguoi.png';
+export const MASTER_PORTRAIT_FILE = publicAssetUrl('assets/npcs/su-phu-nua-nguoi.png');
 
 /** Texture key chung với avatar procedural — ưu tiên PNG nếu đã load. */
 export function npcPortraitKey(npcId: string): string | null {

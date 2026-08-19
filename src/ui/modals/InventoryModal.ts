@@ -15,6 +15,7 @@ import { UIButton } from '../UIButton.ts';
 import { resolveAvatarKey, resolveItemIconKey } from '../../utils/AssetGenerator.ts';
 import { createItemIcon, applyIconCircleMask, usesHubUiItemIcon } from '../../utils/iconAssets.ts';
 import { createItemRarityFrame } from '../itemRarityFrame.ts';
+import { runPartyRealmProgressionFlow, runRealmProgressionFlow } from '../realmBreakthroughFlow.ts';
 import { AVATAR_W, AVATAR_H } from '../../utils/assetDrawCharacters.ts';
 import { soundManager } from '../../utils/SoundManager.ts';
 
@@ -1038,13 +1039,18 @@ export class InventoryModal {
     const indices = [...this.bulkSelectedSlots].sort((a, b) => a - b);
     let ok = 0;
     let fail = 0;
+    let anyExpGranted = false;
 
     for (const index of indices) {
       const slot = gs.inventoryManager.getGridSlot(index);
       if (!slot) continue;
       const result = this.useItemById(slot.itemId, true);
-      if (result.success) ok += 1;
-      else fail += 1;
+      if (result.success) {
+        ok += 1;
+        if (result.expGranted) anyExpGranted = true;
+      } else {
+        fail += 1;
+      }
     }
 
     gs.syncPartyVitals();
@@ -1052,9 +1058,28 @@ export class InventoryModal {
     this.teardownDrag();
     this.exitBulkMode();
     this.clearGridSelection();
-    this.renderCharacterStats();
-    this.renderEquipHighlights();
-    this.renderGrid();
+
+    const refreshInventoryUi = (): void => {
+      this.renderCharacterStats();
+      this.renderEquipHighlights();
+      this.renderGrid();
+    };
+
+    if (anyExpGranted) {
+      runPartyRealmProgressionFlow(this.scene, () => {
+        refreshInventoryUi();
+        if (fail === 0) {
+          this.showToast(`Đã dùng ${ok} vật phẩm.`);
+        } else if (ok === 0) {
+          this.showToast(`Không thể dùng ${fail} vật phẩm đã chọn.`);
+        } else {
+          this.showToast(`Dùng thành công ${ok}, thất bại ${fail}.`);
+        }
+      });
+      return;
+    }
+
+    refreshInventoryUi();
 
     if (fail === 0) {
       this.showToast(`Đã dùng ${ok} vật phẩm.`);
@@ -1080,6 +1105,14 @@ export class InventoryModal {
     this.showToast(result.message);
     if (result.success && result.fullRefresh) {
       this.refresh();
+      return;
+    }
+    if (result.success && result.expGranted && result.targetCharacterId) {
+      runRealmProgressionFlow(this.scene, result.targetCharacterId, () => {
+        this.renderCharacterStats();
+        this.renderEquipHighlights();
+        this.renderGrid();
+      });
       return;
     }
     if (result.success) {
@@ -1216,7 +1249,7 @@ export class InventoryModal {
   private useItemById(
     itemId: string,
     _silent = false,
-  ): { success: boolean; message: string; fullRefresh?: boolean } {
+  ): { success: boolean; message: string; fullRefresh?: boolean; expGranted?: number; targetCharacterId?: string } {
     const gs = GameState.getInstance();
     const item = getItemById(itemId);
     if (!item) {
@@ -1288,7 +1321,12 @@ export class InventoryModal {
         gs.syncPartyVitals();
         gs.persist();
       }
-      return { success: result.success, message: result.message };
+      return {
+        success: result.success,
+        message: result.message,
+        expGranted: result.expGranted,
+        targetCharacterId: result.expGranted ? char.id : undefined,
+      };
     }
 
     return { success: false, message: item.description || item.name };

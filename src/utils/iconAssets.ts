@@ -4,6 +4,7 @@ import { ITEMS_DATA } from '../data/itemsData.ts';
 import { resolveItemIconPath, resolveItemIconTint } from '../data/itemIconPaths.ts';
 import type { ItemData } from '../types/game.ts';
 import { ASSET_KEYS } from './AssetGenerator.ts';
+import { publicIconsUrl } from './publicAssetUrl.ts';
 
 /** Vật phẩm dùng PNG tiền tệ sảnh chính (public/assets/ui/) — hiển thị nguyên tỷ lệ, không sketch/mask. */
 const HUB_UI_ITEM_ICONS: Record<string, string> = {
@@ -76,8 +77,6 @@ export interface ResolvedIcon {
   score: number;
 }
 
-const ICON_PUBLIC_PREFIX = '/assets/icons/';
-
 /** Icon cố định cho slot — ưu tiên hơn ghép tự động từ manifest. */
 const SLOT_ICON_OVERRIDES: Partial<Record<IconSlot, string>> = {
   skill_martial: 'lorc/fist.png',
@@ -102,10 +101,10 @@ export const HUB_EXP_ICON_PATH = 'lorc/burning-passion.png';
 export const ROSTER_RENAME_PEN_ICON_PATH = 'delapouite/pencil.png';
 
 export function queueHubStatIconLoads(scene: Phaser.Scene): void {
-  scene.load.image(iconPathTextureKey(HUB_EXP_ICON_PATH), `${ICON_PUBLIC_PREFIX}${HUB_EXP_ICON_PATH}`);
+  scene.load.image(iconPathTextureKey(HUB_EXP_ICON_PATH), publicIconsUrl(HUB_EXP_ICON_PATH));
   scene.load.image(
     iconPathTextureKey(ROSTER_RENAME_PEN_ICON_PATH),
-    `${ICON_PUBLIC_PREFIX}${ROSTER_RENAME_PEN_ICON_PATH}`,
+    publicIconsUrl(ROSTER_RENAME_PEN_ICON_PATH),
   );
 }
 
@@ -116,7 +115,7 @@ export function queueItemIconLoads(scene: Phaser.Scene): void {
     const path = resolveItemIconPath(item);
     if (!path || queuedPaths.has(path)) continue;
     queuedPaths.add(path);
-    scene.load.image(itemIconTextureKey({ ...item, iconPath: path }), `${ICON_PUBLIC_PREFIX}${path}`);
+    scene.load.image(itemIconTextureKey({ ...item, iconPath: path }), publicIconsUrl(path));
   }
   if (queuedPaths.size > 0) {
     console.log(`[iconAssets] Queue ${queuedPaths.size} unique item icon path(s)`);
@@ -256,7 +255,7 @@ export function hasExternalIcon(slot: IconSlot, scene?: Phaser.Scene): boolean {
 export function queueExternalIconLoads(scene: Phaser.Scene): Map<IconSlot, ResolvedIcon> {
   const matches = resolveIconMatches();
   for (const { key, path } of matches.values()) {
-    scene.load.image(key, `${ICON_PUBLIC_PREFIX}${path}`);
+    scene.load.image(key, publicIconsUrl(path));
   }
   if (matches.size > 0) {
     console.log(`[iconAssets] Queue ${matches.size} external icon(s)`);

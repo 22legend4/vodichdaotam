@@ -1,4 +1,5 @@
 import type { WeaponType } from '../types/game.ts';
+import { publicAssetUrl } from '../utils/publicAssetUrl.ts';
 
 export type CharacterGender = 'nam' | 'nu';
 
@@ -35,7 +36,7 @@ export interface CharacterAppearanceDef {
 }
 
 function charPath(gender: CharacterGender, slot: number, kind: 'idle' | 'attack'): string {
-  return `/assets/characters/${gender}/${slot}-${kind}.png`;
+  return publicAssetUrl(`assets/characters/${gender}/${slot}-${kind}.png`);
 }
 
 function slotDef(

@@ -8,9 +8,13 @@
     "icons:prune": "node scripts/pruneUnusedIcons.mjs && node scripts/generateIconManifest.mjs",
     "predev": "node scripts/generateIconManifest.mjs",
     "prebuild": "node scripts/generateIconManifest.mjs",
+    "prebuild:itch": "node scripts/generateIconManifest.mjs",
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build:itch": "tsc && vite build --mode itch",
+    "preview": "vite preview",
+    "preview:itch": "vite preview --mode itch",
+    "pack:itch": "node scripts/packItchZip.mjs"
   },
   "devDependencies": {
     "typescript": "~6.0.2",

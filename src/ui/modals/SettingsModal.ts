@@ -65,7 +65,6 @@ export class SettingsModal extends ModalBase {
   }
 
   private build(): void {
-    const gs = GameState.getInstance();
     const panelTop = GAME_HEIGHT / 2 - (GAME_HEIGHT - 120) / 2;
 
     const giftTitleY = panelTop + 88;
@@ -94,12 +93,11 @@ export class SettingsModal extends ModalBase {
     }).setOrigin(0.5, 0);
     this.container.add(this.statusText);
 
-    const accountId = gs.getPlayerDisplayId();
     this.addText(
       GAME_WIDTH / 2,
       accountY,
-      `Tài khoản Khách\nID: ${accountId ?? '—'}`,
-      '14px',
+      `Zalo chăm sóc khách hàng: 0879 805 525`,
+      '18px',
       UI_THEME.colors.textMuted,
     );
 

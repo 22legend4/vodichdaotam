@@ -1,7 +1,6 @@
 import type { SkillData } from '../types/game.ts';
 import { SKILLS_DATA } from '../data/skillsData.ts';
-
-const ICON_PUBLIC_PREFIX = '/assets/icons/';
+import { publicIconsUrl } from './publicAssetUrl.ts';
 
 export function skillIconTextureKey(iconPath: string): string {
   return `skill_icon_${iconPath.replace(/[^a-zA-Z0-9]+/g, '_')}`;
@@ -13,7 +12,7 @@ export function queueSkillIconLoads(scene: Phaser.Scene): void {
   for (const skill of SKILLS_DATA) {
     if (!skill.iconPath || queued.has(skill.iconPath)) continue;
     queued.add(skill.iconPath);
-    scene.load.image(skillIconTextureKey(skill.iconPath), `${ICON_PUBLIC_PREFIX}${skill.iconPath}`);
+    scene.load.image(skillIconTextureKey(skill.iconPath), publicIconsUrl(skill.iconPath));
   }
 }
 

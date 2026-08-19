@@ -5,6 +5,7 @@ import {
   type CharacterAppearanceDef,
 } from '../data/characterAppearances.ts';
 import { ASSET_KEYS } from './AssetGenerator.ts';
+import { publicAssetUrl } from './publicAssetUrl.ts';
 
 /** Icon cửa ải trên bản đồ — lorc/sword-clash.png */
 export const MAP_STAGE_SWORD_ICON = 'icon_map_sword_clash';
@@ -76,35 +77,35 @@ export function characterAttackKey(appearanceId: string): string {
 
 /** Load PNG nhân vật (idle + attack) + nền sảnh + UI. NPC địch: queueNpcSpriteLoads — chỉ 1 ảnh. */
 export function queueCharacterSpriteLoads(scene: Phaser.Scene): void {
-  scene.load.image(ASSET_KEYS.bgMeditation, '/assets/bg/hub-main.jpg');
-  scene.load.image(ASSET_KEYS.bgCharacterCreation, '/assets/bg/character-creation.jpg');
-  scene.load.image(ASSET_KEYS.bgPlayerRoster, '/assets/bg/bg-player.jpg');
-  scene.load.image(ASSET_KEYS.bgTeleportGate, '/assets/bg/cong-dich-chuyen.jpg');
-  scene.load.image(ASSET_KEYS.bgVillage, '/assets/bg/village-bandit.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter1Arena, '/assets/bg/vo-dai-chuong-1.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter2Map, '/assets/bg/bg-chuong-2.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter2Arena, '/assets/bg/vo-dai-chuong-2.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter3Map, '/assets/bg/bg-chuong-3.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter3Arena, '/assets/bg/vo-dai-chuong-3.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter4Map, '/assets/bg/bg-chuong-4.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter4Arena, '/assets/bg/vo-dai-chuong-4.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter5Map, '/assets/bg/bg-chuong-6-7-8.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter5Arena, '/assets/bg/bg-chuong-6-7-8.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter6Map, '/assets/bg/bg-chuong-6.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter6Arena, '/assets/bg/bg-chuong-6.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter78Map, '/assets/bg/bg-chuong-6-7-8.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter78Arena, '/assets/bg/bg-chuong-6-7-8.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter9Map, '/assets/bg/bg-chuong-9.jpg');
-  scene.load.image(ASSET_KEYS.bgChapter9Arena, '/assets/bg/bg-chuong-9.jpg');
-  scene.load.image(MAP_STAGE_SWORD_ICON, '/assets/icons/lorc/sword-clash.png');
-  scene.load.image(HUB_MAP_WORLD_ICON, '/assets/icons/lorc/world.png');
-  scene.load.image(BATTLE_FIGHT_ICON, '/assets/icons/lorc/sword-clash.png');
-  scene.load.image(BATTLE_BAG_ICON, '/assets/icons/delapouite/chest.png');
-  scene.load.image(BATTLE_SURRENDER_ICON, '/assets/icons/lorc/palm.png');
-  scene.load.image(ASSET_KEYS.hubPlayerProfile, '/assets/ui/player-avatar.png');
-  scene.load.image(ASSET_KEYS.uiIconTinhThach, '/assets/ui/icon-tinh-thach.png');
-  scene.load.image(ASSET_KEYS.uiIconGioiThuy, '/assets/ui/icon-gioi-thuy.png');
-  scene.load.image(ASSET_KEYS.uiIconShop, '/assets/ui/shop.png');
+  scene.load.image(ASSET_KEYS.bgMeditation, publicAssetUrl('assets/bg/hub-main.jpg'));
+  scene.load.image(ASSET_KEYS.bgCharacterCreation, publicAssetUrl('assets/bg/character-creation.jpg'));
+  scene.load.image(ASSET_KEYS.bgPlayerRoster, publicAssetUrl('assets/bg/bg-player.jpg'));
+  scene.load.image(ASSET_KEYS.bgTeleportGate, publicAssetUrl('assets/bg/cong-dich-chuyen.jpg'));
+  scene.load.image(ASSET_KEYS.bgVillage, publicAssetUrl('assets/bg/village-bandit.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter1Arena, publicAssetUrl('assets/bg/vo-dai-chuong-1.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter2Map, publicAssetUrl('assets/bg/bg-chuong-2.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter2Arena, publicAssetUrl('assets/bg/vo-dai-chuong-2.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter3Map, publicAssetUrl('assets/bg/bg-chuong-3.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter3Arena, publicAssetUrl('assets/bg/vo-dai-chuong-3.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter4Map, publicAssetUrl('assets/bg/bg-chuong-4.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter4Arena, publicAssetUrl('assets/bg/vo-dai-chuong-4.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter5Map, publicAssetUrl('assets/bg/bg-chuong-6-7-8.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter5Arena, publicAssetUrl('assets/bg/bg-chuong-6-7-8.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter6Map, publicAssetUrl('assets/bg/bg-chuong-6.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter6Arena, publicAssetUrl('assets/bg/bg-chuong-6.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter78Map, publicAssetUrl('assets/bg/bg-chuong-6-7-8.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter78Arena, publicAssetUrl('assets/bg/bg-chuong-6-7-8.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter9Map, publicAssetUrl('assets/bg/bg-chuong-9.jpg'));
+  scene.load.image(ASSET_KEYS.bgChapter9Arena, publicAssetUrl('assets/bg/bg-chuong-9.jpg'));
+  scene.load.image(MAP_STAGE_SWORD_ICON, publicAssetUrl('assets/icons/lorc/sword-clash.png'));
+  scene.load.image(HUB_MAP_WORLD_ICON, publicAssetUrl('assets/icons/lorc/world.png'));
+  scene.load.image(BATTLE_FIGHT_ICON, publicAssetUrl('assets/icons/lorc/sword-clash.png'));
+  scene.load.image(BATTLE_BAG_ICON, publicAssetUrl('assets/icons/delapouite/chest.png'));
+  scene.load.image(BATTLE_SURRENDER_ICON, publicAssetUrl('assets/icons/lorc/palm.png'));
+  scene.load.image(ASSET_KEYS.hubPlayerProfile, publicAssetUrl('assets/ui/player-avatar.png'));
+  scene.load.image(ASSET_KEYS.uiIconTinhThach, publicAssetUrl('assets/ui/icon-tinh-thach.png'));
+  scene.load.image(ASSET_KEYS.uiIconGioiThuy, publicAssetUrl('assets/ui/icon-gioi-thuy.png'));
+  scene.load.image(ASSET_KEYS.uiIconShop, publicAssetUrl('assets/ui/shop.png'));
 
   for (const app of CHARACTER_APPEARANCES) {
     if (!app.idleFile) continue;
