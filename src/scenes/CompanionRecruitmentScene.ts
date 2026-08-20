@@ -17,30 +17,16 @@ import {
   UIButton,
   StatAllocationPanel,
 } from '../ui/index.ts';
-
-function syncDomToGame(
-  el: HTMLElement,
-  game: Phaser.Game,
-  gameX: number,
-  gameY: number,
-  gameW: number,
-  gameH: number,
-): void {
-  const canvas = game.canvas;
-  const rect = canvas.getBoundingClientRect();
-  const scale = Math.min(rect.width / GAME_WIDTH, rect.height / GAME_HEIGHT);
-  const offsetX = rect.left + (rect.width - GAME_WIDTH * scale) / 2;
-  const offsetY = rect.top + (rect.height - GAME_HEIGHT * scale) / 2;
-
-  el.style.position = 'fixed';
-  el.style.left = `${offsetX + (gameX - gameW / 2) * scale}px`;
-  el.style.top = `${offsetY + (gameY - gameH / 2) * scale}px`;
-  el.style.width = `${gameW * scale}px`;
-  el.style.height = `${gameH * scale}px`;
-  el.style.zIndex = '10000';
-}
+import {
+  addDomInputFocusZone,
+  syncDomInputToGame,
+  wireDomTextInput,
+} from '../utils/domInputOverlay.ts';
 
 const LEFT_COL_X = 220;
+const NAME_INPUT_W = 360;
+const NAME_INPUT_H = 46;
+const NAME_INPUT_Y = 152;
 /** Preview bên phải — tránh chồng panel chỉ số (panel + nút kéo dài ~x794). */
 const PREVIEW_X = 1040;
 const PREVIEW_Y = 340;
@@ -64,6 +50,8 @@ export class CompanionRecruitmentScene extends Phaser.Scene {
   private allocationValid = false;
   private allocatedStats = { hp: 0, atk: 0, def: 0, qi: 0 };
   private nameInput: HTMLInputElement | null = null;
+  private nameFocusZone: Phaser.GameObjects.Zone | null = null;
+  private unwiredNameInput: (() => void) | null = null;
   private isNameComposing = false;
   private hintText: Phaser.GameObjects.Text | null = null;
   private statPanel!: StatAllocationPanel;
@@ -73,7 +61,7 @@ export class CompanionRecruitmentScene extends Phaser.Scene {
 
   private readonly syncNameLayout = (): void => {
     if (!this.nameInput) return;
-    syncDomToGame(this.nameInput, this.game, LEFT_COL_X, 152, 360, 46);
+    syncDomInputToGame(this.nameInput, this.game, LEFT_COL_X, NAME_INPUT_Y, NAME_INPUT_W, NAME_INPUT_H);
   };
 
   constructor() {
@@ -155,6 +143,7 @@ export class CompanionRecruitmentScene extends Phaser.Scene {
     this.nameInput.placeholder = 'Nhập tên...';
     this.nameInput.autocomplete = 'off';
     this.nameInput.lang = 'vi';
+    this.nameInput.setAttribute('inputmode', 'text');
     this.nameInput.setAttribute('aria-label', 'Tên đồng đội');
     this.nameInput.style.cssText = `
       padding: 10px 14px;
@@ -164,10 +153,12 @@ export class CompanionRecruitmentScene extends Phaser.Scene {
       border-radius: 8px;
       background: rgba(22, 33, 62, 0.92);
       color: #ffffff;
+      caret-color: #ffffff;
       outline: none;
       box-sizing: border-box;
       pointer-events: auto;
     `;
+    this.unwiredNameInput = wireDomTextInput(this, this.nameInput);
     this.nameInput.addEventListener('compositionstart', () => {
       this.isNameComposing = true;
     });
@@ -180,12 +171,20 @@ export class CompanionRecruitmentScene extends Phaser.Scene {
       if (inputEvent.isComposing || this.isNameComposing) return;
       this.updateConfirmState();
     });
-    this.nameInput.addEventListener('keydown', (event) => event.stopPropagation());
-    this.nameInput.addEventListener('keyup', (event) => event.stopPropagation());
 
     const app = document.getElementById('app') ?? document.body;
     app.appendChild(this.nameInput);
     this.syncNameLayout();
+
+    this.nameFocusZone = addDomInputFocusZone(
+      this,
+      LEFT_COL_X,
+      NAME_INPUT_Y,
+      NAME_INPUT_W,
+      NAME_INPUT_H,
+      this.nameInput,
+      depth + 3,
+    );
 
     this.hintText = this.add.text(LEFT_COL_X, 188, '', {
       ...uiLabelTextStyle(16),
@@ -293,6 +292,10 @@ export class CompanionRecruitmentScene extends Phaser.Scene {
 
   private destroyNameInput(): void {
     this.scale.off('resize', this.syncNameLayout);
+    this.unwiredNameInput?.();
+    this.unwiredNameInput = null;
+    this.nameFocusZone?.destroy();
+    this.nameFocusZone = null;
     this.nameInput?.remove();
     this.nameInput = null;
     this.isNameComposing = false;

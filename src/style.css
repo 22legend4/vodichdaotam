@@ -38,4 +38,6 @@ body {
   display: block !important;
   opacity: 1 !important;
   font-family: "Noto Serif", "Times New Roman", serif;
+  -webkit-user-select: text;
+  user-select: text;
 }

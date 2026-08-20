@@ -1,4 +1,5 @@
-/** Vật phẩm bán tại Cửa hàng — giá lấy từ `ItemData.value` (Tinh thạch). Không bán trang bị / mảnh / yêu thú. */
+import { SHOP_EQUIPMENT_IDS } from './equipmentCatalog.ts';
+/** Vật phẩm bán tại Cửa hàng — giá lấy từ `ItemData.value` (Tinh thạch). */
 export const SHOP_ITEM_IDS: readonly string[] = [
   'med_chuChiDuoc',
   'med_cuongSinhDan',
@@ -21,10 +22,19 @@ export const SHOP_ITEM_IDS: readonly string[] = [
   'med_huyetLinhDan',
   'med_ngoDongHoangThao',
   'med_ngoDongThao',
+  'beast_hacMieu',
+  'beast_bachHau',
+  'beast_xichHuyetMa',
+  'beast_kimLong',
+  'beast_linhMieu',
+  'beast_uCotLang',
+  'beast_cuuViHo',
+  'beast_suongNhanBang',
   'item_hoiThe',
   'item_pheVo',
   'item_thienQuy',
   'item_thatSinhThatTuDo',
   'item_nhanKhongGian',
   'item_moTinhThach',
+  ...SHOP_EQUIPMENT_IDS,
 ];

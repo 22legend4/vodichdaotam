@@ -19,32 +19,17 @@ import {
   UIButton,
   StatAllocationPanel,
 } from '../ui/index.ts';
-
-/** Căn input HTML theo canvas Phaser (FIT scale) – tránh lệch khi màn ngang. */
-function syncDomToGame(
-  el: HTMLElement,
-  game: Phaser.Game,
-  gameX: number,
-  gameY: number,
-  gameW: number,
-  gameH: number,
-): void {
-  const canvas = game.canvas;
-  const rect = canvas.getBoundingClientRect();
-  const scale = Math.min(rect.width / GAME_WIDTH, rect.height / GAME_HEIGHT);
-  const offsetX = rect.left + (rect.width - GAME_WIDTH * scale) / 2;
-  const offsetY = rect.top + (rect.height - GAME_HEIGHT * scale) / 2;
-
-  el.style.position = 'fixed';
-  el.style.left = `${offsetX + (gameX - gameW / 2) * scale}px`;
-  el.style.top = `${offsetY + (gameY - gameH / 2) * scale}px`;
-  el.style.width = `${gameW * scale}px`;
-  el.style.height = `${gameH * scale}px`;
-  el.style.zIndex = '10000';
-}
+import {
+  addDomInputFocusZone,
+  syncDomInputToGame,
+  wireDomTextInput,
+} from '../utils/domInputOverlay.ts';
 
 /** Cột trái — tên, giới tính, 4 thumbnail, vũ khí. */
 const LEFT_COL_X = 220;
+const NAME_INPUT_W = 360;
+const NAME_INPUT_H = 46;
+const NAME_INPUT_Y = 152;
 /** Preview lớn bên phải (cao gấp 4 lần bản cũ ~130px). */
 const PREVIEW_X = 1040;
 const PREVIEW_Y = 340;
@@ -66,6 +51,9 @@ export class CharacterCreationScene extends Phaser.Scene {
   private allocatedStats = { hp: 0, atk: 0, def: 0, qi: 0 };
   private nameInput: HTMLInputElement | null = null;
   private nameMirrorText: Phaser.GameObjects.Text | null = null;
+  private nameFocusZone: Phaser.GameObjects.Zone | null = null;
+  private unwiredNameInput: (() => void) | null = null;
+  private isNameComposing = false;
   private hintText: Phaser.GameObjects.Text | null = null;
   private statPanel!: StatAllocationPanel;
   private confirmBtn!: UIButton;
@@ -76,7 +64,7 @@ export class CharacterCreationScene extends Phaser.Scene {
   private submitting = false;
   private readonly syncNameLayout = (): void => {
     if (!this.nameInput) return;
-    syncDomToGame(this.nameInput, this.game, LEFT_COL_X, 152, 360, 46);
+    syncDomInputToGame(this.nameInput, this.game, LEFT_COL_X, NAME_INPUT_Y, NAME_INPUT_W, NAME_INPUT_H);
   };
 
   constructor() {
@@ -149,7 +137,7 @@ export class CharacterCreationScene extends Phaser.Scene {
       ...uiLabelTextStyle(LEFT_SECTION_LABEL_PX),
     }).setOrigin(0.5).setDepth(depth);
 
-    this.nameMirrorText = this.add.text(LEFT_COL_X, 152, 'Nhập tên tiếng Việt...', {
+    this.nameMirrorText = this.add.text(LEFT_COL_X, NAME_INPUT_Y, 'Nhập tên tiếng Việt...', {
       fontFamily: UI_THEME.fontFamilyTitle,
       fontSize: '17px',
       color: UI_THEME.colors.textMuted,
@@ -161,6 +149,8 @@ export class CharacterCreationScene extends Phaser.Scene {
     this.nameInput.maxLength = 15;
     this.nameInput.placeholder = 'Nhập tên tiếng Việt...';
     this.nameInput.autocomplete = 'off';
+    this.nameInput.lang = 'vi';
+    this.nameInput.setAttribute('inputmode', 'text');
     this.nameInput.setAttribute('aria-label', 'Tên nhân vật');
     this.nameInput.style.cssText = `
       padding: 10px 14px;
@@ -170,11 +160,23 @@ export class CharacterCreationScene extends Phaser.Scene {
       border-radius: 8px;
       background: rgba(22, 33, 62, 0.92);
       color: #ffffff;
+      caret-color: #ffffff;
       outline: none;
       box-sizing: border-box;
       pointer-events: auto;
     `;
-    this.nameInput.addEventListener('input', () => {
+    this.unwiredNameInput = wireDomTextInput(this, this.nameInput);
+    this.nameInput.addEventListener('compositionstart', () => {
+      this.isNameComposing = true;
+    });
+    this.nameInput.addEventListener('compositionend', () => {
+      this.isNameComposing = false;
+      this.refreshNameMirror();
+      this.updateConfirmState();
+    });
+    this.nameInput.addEventListener('input', (event) => {
+      const inputEvent = event as InputEvent;
+      if (inputEvent.isComposing || this.isNameComposing) return;
       this.refreshNameMirror();
       this.updateConfirmState();
     });
@@ -185,13 +187,19 @@ export class CharacterCreationScene extends Phaser.Scene {
       this.refreshNameMirror();
     });
 
-    const app = document.getElementById('app');
-    if (app) {
-      app.appendChild(this.nameInput);
-    } else {
-      document.body.appendChild(this.nameInput);
-    }
+    const app = document.getElementById('app') ?? document.body;
+    app.appendChild(this.nameInput);
     this.syncNameLayout();
+
+    this.nameFocusZone = addDomInputFocusZone(
+      this,
+      LEFT_COL_X,
+      NAME_INPUT_Y,
+      NAME_INPUT_W,
+      NAME_INPUT_H,
+      this.nameInput,
+      depth + 3,
+    );
 
     this.hintText = this.add.text(LEFT_COL_X, 188, '', {
       ...uiLabelTextStyle(17),
@@ -455,6 +463,10 @@ export class CharacterCreationScene extends Phaser.Scene {
 
   private destroyNameInput(): void {
     this.scale.off('resize', this.syncNameLayout);
+    this.unwiredNameInput?.();
+    this.unwiredNameInput = null;
+    this.nameFocusZone?.destroy();
+    this.nameFocusZone = null;
     this.nameInput?.remove();
     this.nameInput = null;
     this.nameMirrorText?.destroy();
