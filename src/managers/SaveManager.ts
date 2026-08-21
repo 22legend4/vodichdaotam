@@ -12,9 +12,10 @@ import type { LeoThapSaveState } from './LeoThapManager.ts';
 import { clearAllGameLocalData } from '../utils/guestSession.ts';
 import {
   buildSignedEnvelope,
+  extractPayloadFromEnvelope,
   isLegacySavePayload,
   isSignedEnvelope,
-  verifySavePayload,
+  verifySignedEnvelope,
 } from '../utils/saveIntegrity.ts';
 
 export const SAVE_STORAGE_KEY = 'vodichdaotam_save';
@@ -158,12 +159,18 @@ export class SaveManager {
       let data: GameSaveData | null = null;
 
       if (isSignedEnvelope(parsed)) {
-        const valid = await verifySavePayload(parsed.payload, parsed.sig);
+        const payload = extractPayloadFromEnvelope(parsed);
+        if (!payload) return null;
+
+        const valid = await verifySignedEnvelope(parsed);
         if (!valid) {
-          console.warn('[SaveManager] Save bị sửa (chữ ký không hợp lệ) — từ chối load.');
-          return null;
+          if (parsed.payloadJson) {
+            console.warn('[SaveManager] Save bị sửa (chữ ký không hợp lệ) — từ chối load.');
+            return null;
+          }
+          console.warn('[SaveManager] Envelope save cũ — load và ký lại ở lần lưu tiếp theo.');
         }
-        data = parsed.payload;
+        data = payload;
       } else if (isLegacySavePayload(parsed)) {
         data = parsed;
       } else {
@@ -190,7 +197,7 @@ export class SaveManager {
   peekPayload(raw: string): GameSaveData | null {
     try {
       const parsed: unknown = JSON.parse(raw);
-      if (isSignedEnvelope(parsed)) return parsed.payload;
+      if (isSignedEnvelope(parsed)) return extractPayloadFromEnvelope(parsed);
       if (isLegacySavePayload(parsed)) return parsed;
       return null;
     } catch {

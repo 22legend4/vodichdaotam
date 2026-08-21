@@ -1,5 +1,5 @@
 import { SAVE_STORAGE_KEY } from '../managers/SaveManager.ts';
-import { isLegacySavePayload, isSignedEnvelope } from '../utils/saveIntegrity.ts';
+import { isLegacySavePayload, isSignedEnvelope, extractPayloadFromEnvelope } from '../utils/saveIntegrity.ts';
 
 const USED_IDS_KEY = 'vodichdaotam_used_display_ids';
 
@@ -19,7 +19,7 @@ function loadUsedIds(): Set<number> {
     if (saveRaw) {
       const parsed: unknown = JSON.parse(saveRaw);
       const save = isSignedEnvelope(parsed)
-        ? parsed.payload
+        ? extractPayloadFromEnvelope(parsed)
         : isLegacySavePayload(parsed)
           ? parsed
           : null;

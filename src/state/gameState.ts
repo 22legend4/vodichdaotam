@@ -119,7 +119,7 @@ export class GameState {
         createdAt: loadGuestSession()?.createdAt ?? Date.now(),
       });
     }
-    void this.saveManager.save(
+    this.pendingSave = this.saveManager.save(
       this.characterManager,
       this.inventoryManager,
       this.staminaManager,
@@ -131,6 +131,28 @@ export class GameState {
       this.dailyRewardManager.exportState(),
       this.leoThapManager.exportState(),
     );
+  }
+
+  private pendingSave: Promise<unknown> | null = null;
+
+  /** Flush save khi tab ẩn / reload — tránh mất save do ghi async chưa xong. */
+  async flushSave(): Promise<void> {
+    if (this.pendingSave) {
+      await this.pendingSave;
+    }
+    this.pendingSave = this.saveManager.save(
+      this.characterManager,
+      this.inventoryManager,
+      this.staminaManager,
+      this.progress,
+      this.playerDisplayId,
+      this.guestAccountId,
+      this.giftcodeManager.exportState(),
+      this.cultivationManager.exportState(),
+      this.dailyRewardManager.exportState(),
+      this.leoThapManager.exportState(),
+    );
+    await this.pendingSave;
   }
 
   /** Di chuyển tiến trình quà ngày từ localStorage cũ (nếu có). */
