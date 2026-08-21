@@ -48,8 +48,8 @@ export class GameState {
     GameState.instance = null;
   }
 
-  loadOrCreate(): 'new' | 'loaded' {
-    const saveData = this.saveManager.load();
+  async loadOrCreate(): Promise<'new' | 'loaded'> {
+    const saveData = await this.saveManager.load();
     if (saveData) {
       this.progress = this.saveManager.apply(
         saveData,
@@ -119,7 +119,7 @@ export class GameState {
         createdAt: loadGuestSession()?.createdAt ?? Date.now(),
       });
     }
-    this.saveManager.save(
+    void this.saveManager.save(
       this.characterManager,
       this.inventoryManager,
       this.staminaManager,

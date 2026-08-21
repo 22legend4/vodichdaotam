@@ -10,6 +10,12 @@ import type { CultivationSaveState } from './CultivationManager.ts';
 import type { DailyRewardSaveData } from './DailyRewardManager.ts';
 import type { LeoThapSaveState } from './LeoThapManager.ts';
 import { clearAllGameLocalData } from '../utils/guestSession.ts';
+import {
+  buildSignedEnvelope,
+  isLegacySavePayload,
+  isSignedEnvelope,
+  verifySavePayload,
+} from '../utils/saveIntegrity.ts';
 
 export const SAVE_STORAGE_KEY = 'vodichdaotam_save';
 export const SAVE_VERSION = 7;
@@ -87,7 +93,7 @@ function migrateLegacySave(data: GameSaveData & { wallet?: unknown }): GameSaveD
 }
 
 export class SaveManager {
-  save(
+  async save(
     characterManager: CharacterManager,
     inventoryManager: InventoryManager,
     staminaManager: StaminaManager,
@@ -98,7 +104,7 @@ export class SaveManager {
     cultivation?: CultivationSaveState,
     dailyReward?: DailyRewardSaveData,
     leoThap?: LeoThapSaveState,
-  ): GameSaveData {
+  ): Promise<GameSaveData> {
     const characterState = characterManager.exportState();
     const saveData: GameSaveData = {
       version: SAVE_VERSION,
@@ -138,16 +144,32 @@ export class SaveManager {
         : undefined,
     };
 
-    localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(saveData));
+    const envelope = await buildSignedEnvelope(saveData);
+    localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(envelope));
     return saveData;
   }
 
-  load(): GameSaveData | null {
+  async load(): Promise<GameSaveData | null> {
     const raw = localStorage.getItem(SAVE_STORAGE_KEY);
     if (!raw) return null;
 
     try {
-      const data = JSON.parse(raw) as GameSaveData;
+      const parsed: unknown = JSON.parse(raw);
+      let data: GameSaveData | null = null;
+
+      if (isSignedEnvelope(parsed)) {
+        const valid = await verifySavePayload(parsed.payload, parsed.sig);
+        if (!valid) {
+          console.warn('[SaveManager] Save bị sửa (chữ ký không hợp lệ) — từ chối load.');
+          return null;
+        }
+        data = parsed.payload;
+      } else if (isLegacySavePayload(parsed)) {
+        data = parsed;
+      } else {
+        return null;
+      }
+
       if (!data) return null;
       if (data.version === 1 || data.version === 2 || data.version === 3) {
         return migrateLegacySave(data as GameSaveData & { wallet?: unknown });
@@ -159,6 +181,18 @@ export class SaveManager {
         return null;
       }
       return data;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Đọc payload save thô (không verify) — dùng cho helper ID hiển thị. */
+  peekPayload(raw: string): GameSaveData | null {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (isSignedEnvelope(parsed)) return parsed.payload;
+      if (isLegacySavePayload(parsed)) return parsed;
+      return null;
     } catch {
       return null;
     }
@@ -189,12 +223,12 @@ export class SaveManager {
     };
   }
 
-  loadAndApply(
+  async loadAndApply(
     characterManager: CharacterManager,
     inventoryManager: InventoryManager,
     staminaManager: StaminaManager,
-  ): StageProgress | null {
-    const saveData = this.load();
+  ): Promise<StageProgress | null> {
+    const saveData = await this.load();
     if (!saveData) return null;
     return this.apply(saveData, characterManager, inventoryManager, staminaManager);
   }

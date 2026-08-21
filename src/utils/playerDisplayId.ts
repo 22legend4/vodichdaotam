@@ -1,4 +1,5 @@
 import { SAVE_STORAGE_KEY } from '../managers/SaveManager.ts';
+import { isLegacySavePayload, isSignedEnvelope } from '../utils/saveIntegrity.ts';
 
 const USED_IDS_KEY = 'vodichdaotam_used_display_ids';
 
@@ -16,8 +17,13 @@ function loadUsedIds(): Set<number> {
   try {
     const saveRaw = localStorage.getItem(SAVE_STORAGE_KEY);
     if (saveRaw) {
-      const save = JSON.parse(saveRaw) as { playerDisplayId?: number };
-      if (save.playerDisplayId) used.add(save.playerDisplayId);
+      const parsed: unknown = JSON.parse(saveRaw);
+      const save = isSignedEnvelope(parsed)
+        ? parsed.payload
+        : isLegacySavePayload(parsed)
+          ? parsed
+          : null;
+      if (save?.playerDisplayId) used.add(save.playerDisplayId);
     }
   } catch {
     /* ignore */

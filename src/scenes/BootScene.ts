@@ -84,21 +84,23 @@ export class BootScene extends Phaser.Scene {
       console.error('[BootScene] Asset generation failed:', err);
     }
 
-    try {
-      logGameFlowReport();
-      GameState.getInstance().loadOrCreate();
-    } catch (err) {
-      console.error('[BootScene] Load save / flow validation failed:', err);
-    }
+    void (async () => {
+      try {
+        logGameFlowReport();
+        await GameState.getInstance().loadOrCreate();
+      } catch (err) {
+        console.error('[BootScene] Load save / flow validation failed:', err);
+      }
 
-    try {
-      this.routeToLogin();
-    } catch (err) {
-      console.error('[BootScene] Scene routing failed, fallback to LoginScene:', err);
-      this.scene.start('LoginScene');
-    }
+      try {
+        this.routeToLogin();
+      } catch (err) {
+        console.error('[BootScene] Scene routing failed, fallback to LoginScene:', err);
+        this.scene.start('LoginScene');
+      }
 
-    statusText.destroy();
+      statusText.destroy();
+    })();
   }
 
   private routeToLogin(): void {
