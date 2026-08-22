@@ -6,6 +6,7 @@ import { ensureGuestSession } from '../utils/guestSession.ts';
 import { generatePlayerDisplayId } from '../utils/playerDisplayId.ts';
 import { UI_THEME, UIButton, uiLabelTextStyle } from '../ui/index.ts';
 import { soundManager } from '../utils/SoundManager.ts';
+import { mountIosAddToHomeHint, unmountIosAddToHomeHint } from '../utils/iosAddToHomeHint.ts';
 
 /** Màn đăng nhập — Chơi Ngay (tài khoản khách, save localStorage). */
 export class LoginScene extends Phaser.Scene {
@@ -40,6 +41,9 @@ export class LoginScene extends Phaser.Scene {
     this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 48, 'Tận hưởng niềm vui chơi game', {
       ...uiLabelTextStyle(14),
     }).setOrigin(0.5);
+
+    mountIosAddToHomeHint();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, unmountIosAddToHomeHint);
 
     this.input.once('pointerdown', () => soundManager.unlock());
     this.input.keyboard?.once('keydown', () => soundManager.unlock());

@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
 import { phaserConfig } from './config/phaserConfig.ts';
 import { initSaveIntegrity } from './utils/saveIntegrity.ts';
+import { initMobileDisplayShell } from './utils/mobileDisplayShell.ts';
 import { GameState } from './state/gameState.ts';
 import './style.css';
 
 async function boot(): Promise<void> {
   await initSaveIntegrity();
+  initMobileDisplayShell();
   const game = new Phaser.Game(phaserConfig);
 
   if (import.meta.env.DEV) {

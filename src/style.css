@@ -41,3 +41,173 @@ body {
   -webkit-user-select: text;
   user-select: text;
 }
+
+/* --- Mobile: full màn hình & xoay ngang --- */
+.vddt-mobile-controls {
+  position: fixed;
+  right: max(8px, env(safe-area-inset-right));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  z-index: 100000;
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.vddt-mobile-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  min-height: 56px;
+  padding: 6px 10px;
+  border: 2px solid #fca311;
+  border-radius: 10px;
+  background: rgba(15, 52, 96, 0.92);
+  color: #fff;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.vddt-mobile-btn:active {
+  transform: scale(0.96);
+  background: rgba(26, 80, 139, 0.95);
+}
+
+.vddt-mobile-btn-icon {
+  font-size: 16px;
+  letter-spacing: -2px;
+}
+
+.vddt-mobile-btn-label {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.vddt-portrait-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8, 8, 20, 0.92);
+  pointer-events: auto;
+}
+
+.vddt-portrait-overlay.visible {
+  display: flex;
+}
+
+.vddt-portrait-card {
+  max-width: 320px;
+  text-align: center;
+  color: #fff;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+.vddt-portrait-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.vddt-portrait-title {
+  margin: 0 0 8px;
+  font-family: "Noto Serif", "Times New Roman", serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #eab308;
+}
+
+.vddt-portrait-hint {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+
+.vddt-mobile-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(72px, calc(env(safe-area-inset-bottom) + 64px));
+  transform: translateX(-50%) translateY(12px);
+  z-index: 100001;
+  max-width: min(92vw, 360px);
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(15, 52, 96, 0.96);
+  border: 1px solid #fca311;
+  color: #fff;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.vddt-mobile-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+html.vddt-standalone .vddt-mobile-controls {
+  bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 1024px) and (hover: hover) {
+  .vddt-mobile-controls {
+    display: none;
+  }
+}
+
+/* iPhone — hướng dẫn Thêm vào Màn hình chính (Login) */
+.vddt-ios-install-hint {
+  position: fixed;
+  left: 50%;
+  bottom: max(56px, calc(env(safe-area-inset-bottom) + 48px));
+  transform: translateX(-50%);
+  z-index: 99998;
+  width: min(92vw, 420px);
+  padding: 10px 14px;
+  border: 2px solid #fca311;
+  border-radius: 12px;
+  background: rgba(15, 52, 96, 0.94);
+  color: #fff;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.vddt-ios-install-title {
+  margin: 0 0 6px;
+  font-family: "Noto Serif", "Times New Roman", serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #eab308;
+  text-align: center;
+}
+
+.vddt-ios-install-steps {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #e2e8f0;
+}
+
+.vddt-ios-install-steps li {
+  margin: 2px 0;
+}
+
+.vddt-ios-install-steps strong {
+  color: #fff;
+}
